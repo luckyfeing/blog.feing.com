@@ -209,20 +209,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">51</span>
+          <span class="site-state-item-count">60</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">14</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-count">40</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -254,6 +254,1260 @@
       
 
       
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E4%B9%8B%E8%B0%83%E5%BA%A6%E5%99%A8%E5%92%8C%E8%B0%83%E5%BA%A6%E8%BF%87%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/k8s%E4%B9%8B%E8%B0%83%E5%BA%A6%E5%99%A8%E5%92%8C%E8%B0%83%E5%BA%A6%E8%BF%87%E7%A8%8B/" class="post-title-link" itemprop="url">k8s之调度器和调度过程</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 14:16:25 / Modified: 18:10:39" itemprop="dateCreated datePublished" datetime="2020-11-30T14:16:25+08:00">2020-11-30</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p><strong>本文作者</strong>：**<a target="_blank" rel="noopener" href="https://www.cnblogs.com/xzkzzz/p/9963511.html">大胖猴</a>**<br><strong>本文链接</strong>：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/xzkzzz/p/9963511.html">https://www.cnblogs.com/xzkzzz/p/9963511.html</a></p>
+<h2 id="scheduler"><a href="#scheduler" class="headerlink" title="scheduler"></a>scheduler</h2><p>当Scheduler通过API server 的watch接口监听到新建Pod副本的信息后，它会检查所有符合该Pod要求的Node列表，开始执行Pod调度逻辑。调度成功后将Pod绑定到目标节点上。Scheduler在整个系统中承担了承上启下的作用，承上是负责接收创建的新Pod，为安排一个落脚的地（Node）,启下是安置工作完成后，目标Node上的kubelet服务进程接管后继工作，负责Pod生命周期的后半生。具体来说，Scheduler的作用是将待调度的Pod安装特定的调度算法和调度策略绑定到集群中的某个合适的Node上，并将绑定信息传给API server 写入etcd中。整个调度过程中涉及三个对象，分别是：待调度的Pod列表，可以的Node列表，以及调度算法和策略。</p>
+<p>Kubernetes Scheduler 提供的调度流程分三步：</p>
+<ol>
+<li>预选策略(predicate) 遍历nodelist，选择出符合要求的候选节点，Kubernetes内置了多种预选规则供用户选择。</li>
+<li>优选策略(priority) 在选择出符合要求的候选节点中，采用优选规则计算出每个节点的积分，最后选择得分最高的。</li>
+<li>选定(select) 如果最高得分有好几个节点，select就会从中随机选择一个节点。</li>
+</ol>
+<p>如图：</p>
+<p><img src="/2020/11/30/k8s%E4%B9%8B%E8%B0%83%E5%BA%A6%E5%99%A8%E5%92%8C%E8%B0%83%E5%BA%A6%E8%BF%87%E7%A8%8B/1076553-20181115142949847-1134192119.png" alt="img"></p>
+<p>预选策略算法的集合在<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/pkg/scheduler/algorithm/predicates/predicates.go">官方源码</a></p>
+<h3 id="常用的预选策略（代码里的策略不一定都会被使用）"><a href="#常用的预选策略（代码里的策略不一定都会被使用）" class="headerlink" title="常用的预选策略（代码里的策略不一定都会被使用）"></a>常用的预选策略（代码里的策略不一定都会被使用）</h3><ul>
+<li>CheckNodeConditionPred 检查节点是否正常</li>
+<li>GeneralPred HostName(如果pod定义hostname属性，会检查节点是否匹配。pod.spec.hostname)、PodFitsHostPorts（检查pod要暴露的hostpors是否被占用。pod.spec.containers.ports.hostPort）</li>
+<li>MatchNodeSelector pod.spec.nodeSelector 看节点标签能否适配pod定义的nodeSelector</li>
+<li>PodFitsResources 判断节点的资源能够满足Pod的定义（如果一个pod定义最少需要2C4G node上的低于此资源的将不被调度。用kubectl describe node NODE名称 可以查看资源使用情况）</li>
+<li>NoDiskConflict 判断pod定义的存储是否在node节点上使用。（默认没有启用）</li>
+<li>PodToleratesNodeTaints 检查pod上Tolerates的能否容忍污点（pod.spec.tolerations）</li>
+<li>CheckNodeLabelPresence 检查节点上的标志是否存在 （默认没有启动）</li>
+<li>CheckServiceAffinity 根据pod所属的service。将相同service上的pod尽量放到同一个节点（默认没有启动）</li>
+<li>CheckVolumeBinding 检查是否可以绑定（默认没有启动）</li>
+<li>NoVolumeZoneConflict 检查是否在一起区域（默认没有启动）</li>
+<li>CheckNodeMemoryPressure 检查内存是否存在压力</li>
+<li>CheckNodeDiskPressure  检查磁盘IO压力是否过大</li>
+<li>CheckNodePIDPressure 检查pid资源是否过大</li>
+</ul>
+<h3 id="优选策略"><a href="#优选策略" class="headerlink" title="优选策略"></a>优选策略</h3><ul>
+<li>least_requested 选择消耗最小的节点（根据空闲比率评估 cpu(总容量-sum(已使用)*10/总容量) ）**<br>**</li>
+<li>balanced_resource_allocation 从节点列表中选出各项资源使用率最均衡的节点（CPU和内存）</li>
+<li>node_prefer_avoid_pods 节点倾向</li>
+<li>taint_toleration 将pod对象的spec.toleration与节点的taints列表项进行匹配度检查，匹配的条目越多，得分越低。</li>
+<li>selector_spreading 与services上其他pod尽量不在同一个节点上，节点上通一个service的pod越少得分越高。</li>
+<li>interpod_affinity 遍历node上的亲和性条目，匹配项越多的得分越高</li>
+<li>most_requested 选择消耗最大的节点上（尽量将一个节点上的资源用完）</li>
+<li>node_label 根据节点标签得分，存在标签既得分，没有标签没得分。标签越多 得分越高。</li>
+<li>image_locality 节点上有所需要的镜像既得分，所需镜像越多得分越高。（根据已有镜像体积大小之和）</li>
+</ul>
+<h2 id="高级调度方式"><a href="#高级调度方式" class="headerlink" title="高级调度方式"></a>高级调度方式</h2><p>当我们想把调度到预期的节点，我们可以使用高级调度分为：</p>
+<ul>
+<li>节点选择器： nodeSelector、nodeName</li>
+<li>节点亲和性调度： nodeAffinity</li>
+<li>Pod亲和性调度：PodAffinity</li>
+<li>Pod反亲和性调度：podAntiAffinity</li>
+</ul>
+<h3 id="NodeSelector"><a href="#NodeSelector" class="headerlink" title="NodeSelector"></a>NodeSelector</h3><p>我们定义一个pod,让其选择带有node=ssd这个标签的节点</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: pod-1</span><br><span class="line">  labels:</span><br><span class="line">    name: myapp</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">  nodeSelector:</span><br><span class="line">    node: ssdkubectl apply -f test.yaml</span><br></pre></td></tr></table></figure>
+
+<p>查看信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">#get一下pod 一直处于Pending状态</span><br><span class="line">$ kubectl get pod </span><br><span class="line">NAME      READY     STATUS    RESTARTS   AGE</span><br><span class="line">pod-1     0&#x2F;1       Pending   0          7s</span><br><span class="line">#查看详细信息,是没有可用的selector</span><br><span class="line">$ kubectl describe pod pod-1</span><br><span class="line">...</span><br><span class="line">Events:</span><br><span class="line">  Type     Reason            Age                From               Message</span><br><span class="line">  ----     ------            ----               ----               -------</span><br><span class="line">  Warning  FailedScheduling  9s (x14 over 36s)  default-scheduler  0&#x2F;4 nodes are available: 4 node(s) didn&#39;t match node selector.</span><br><span class="line">#我们给node2打上这个标签</span><br><span class="line">$  kubectl label node k8s-node02 node&#x3D;ssd</span><br><span class="line">node&#x2F;k8s-node02 labeled</span><br><span class="line">#Pod正常启动</span><br><span class="line">$  kubectl describe pod pod-1</span><br><span class="line">....</span><br><span class="line">Events:</span><br><span class="line">  Type     Reason            Age                From                 Message</span><br><span class="line">  ----     ------            ----               ----                 -------</span><br><span class="line">  Warning  FailedScheduling  2m (x122 over 8m)  default-scheduler    0&#x2F;4 nodes are available: 4 node(s) didn&#39;t match node selector.</span><br><span class="line">  Normal   Pulled            7s                 kubelet, k8s-node02  Container image &quot;ikubernetes&#x2F;myapp:v1&quot; already present on machine</span><br><span class="line">  Normal   Created           7s                 kubelet, k8s-node02  Created container</span><br><span class="line">  Normal   Started           7s                 kubelet, k8s-node02  Started container</span><br></pre></td></tr></table></figure>
+
+<h3 id="nodeAffinity"><a href="#nodeAffinity" class="headerlink" title="nodeAffinity"></a>nodeAffinity</h3><p>kubectl explain pod.spec.affinity.nodeAffinity </p>
+<ul>
+<li>requiredDuringSchedulingIgnoredDuringExecution 硬亲和性 必须满足亲和性。<ul>
+<li>matchExpressions 匹配表达式,这个标签可以指定一段，例如pod中定义的key为zone，operator为In(包含那些)，values为 foo和bar。就是在node节点中包含foo和bar的标签中调度</li>
+<li>matchFields 匹配字段 和上面的意思 不过他可以不定义标签值，可以定义</li>
+</ul>
+</li>
+<li>preferredDuringSchedulingIgnoredDuringExecution  软亲和性 能满足最好，不满足也没关系。<ul>
+<li>preference 优先级</li>
+<li>weight 权重1-100范围内，对于满足所有调度要求的每个节点，调度程序将通过迭代此字段的元素计算总和，并在节点与对应的节点匹配时将“权重”添加到总和。</li>
+</ul>
+</li>
+</ul>
+<p>运算符包含：<code>In</code>，<code>NotIn</code>，<code>Exists</code>，<code>DoesNotExist</code>，<code>Gt</code>，<code>Lt</code>。可以使用<code>NotIn</code>和<code>DoesNotExist</code>实现节点反关联行为。</p>
+<p>硬亲和性:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod</span><br><span class="line">  labels:</span><br><span class="line">    name: myapp</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">  affinity:</span><br><span class="line">    nodeAffinity:</span><br><span class="line">      requiredDuringSchedulingIgnoredDuringExecution:</span><br><span class="line">        nodeSelectorTerms:</span><br><span class="line">        - matchExpressions:</span><br><span class="line">          - key: zone</span><br><span class="line">            operator: In</span><br><span class="line">            values:</span><br><span class="line">            - foo</span><br><span class="line">            - bar</span><br><span class="line">$ kubectl apply -f pod-affinity-demo.yaml </span><br><span class="line">$ kubectl describe pod node-affinity-pod </span><br><span class="line">.....</span><br><span class="line">Events:</span><br><span class="line">  Type     Reason            Age                From               Message</span><br><span class="line">  ----     ------            ----               ----               -------</span><br><span class="line">  Warning  FailedScheduling  33s (x25 over 1m)  default-scheduler  0&#x2F;4 nodes are available: 4 node(s) didn&#39;t match node selector.</span><br><span class="line"># 给其中一个node打上foo的标签</span><br><span class="line">$ kubectl label node k8s-node03 zone&#x3D;foo</span><br><span class="line">$ kubectl get pods</span><br><span class="line">NAME                READY     STATUS    RESTARTS   AGE</span><br><span class="line">node-affinity-pod   1&#x2F;1       Running   0          8m</span><br></pre></td></tr></table></figure>
+
+<p> 软亲和性：</p>
+<p>与requiredDuringSchedulingIgnoredDuringExecution比较，这里需要注意的是preferredDuringSchedulingIgnoredDuringExecution是个列表项，而preference不是一个列表项了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod-2</span><br><span class="line">  labels:</span><br><span class="line">    name: myapp</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">  affinity:</span><br><span class="line">    nodeAffinity:</span><br><span class="line">      preferredDuringSchedulingIgnoredDuringExecution:</span><br><span class="line">      - weight: 50</span><br><span class="line">        preference:</span><br><span class="line">          matchExpressions:</span><br><span class="line">          - key: zone</span><br><span class="line">            operator: In</span><br><span class="line">            values:</span><br><span class="line">            - foo</span><br><span class="line">            - bar$ kubectl get pod -o wide NAME                  READY     STATUS    RESTARTS   AGE       IP           NODEnode-affinity-pod     1&#x2F;1       Running   0          3h        10.244.3.2   k8s-node03node-affinity-pod-2   1&#x2F;1       Running   0          1m        10.244.3.3   k8s-node03</span><br></pre></td></tr></table></figure>
+
+<h3 id="podAffinity"><a href="#podAffinity" class="headerlink" title="podAffinity"></a>podAffinity</h3><p>Pod亲和性场景，我们的k8s集群的节点分布在不同的区域或者不同的机房，当服务A和服务B要求部署在同一个区域或者同一机房的时候，我们就需要亲和性调度了。</p>
+<p>kubectl explain pod.spec.affinity.podAffinity 和NodeAffinity是一样的，都是有硬亲和性和软亲和性</p>
+<p>硬亲和性：</p>
+<ul>
+<li>labelSelector 选择跟那组Pod亲和</li>
+<li>namespaces 选择哪个命名空间</li>
+<li>topologyKey 指定节点上的哪个键</li>
+</ul>
+<p>样例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod1</span><br><span class="line">  labels:</span><br><span class="line">    name: podaffinity-myapp</span><br><span class="line">    tier: service</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod2</span><br><span class="line">  labels:</span><br><span class="line">    name: podaffinity-myapp</span><br><span class="line">    tier: front</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">  affinity:</span><br><span class="line">    podAffinity:</span><br><span class="line">      requiredDuringSchedulingIgnoredDuringExecution:</span><br><span class="line">      - labelSelector:</span><br><span class="line">          matchExpressions:</span><br><span class="line">          - key: name</span><br><span class="line">            operator: In</span><br><span class="line">            values:</span><br><span class="line">            - podaffinity-myapp</span><br><span class="line">        topologyKey: kubernetes.io&#x2F;hostname </span><br></pre></td></tr></table></figure>
+
+<p>查看</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl get pods -o wide </span><br><span class="line">NAME                  READY     STATUS    RESTARTS   AGE       IP           NODE</span><br><span class="line">node-affinity-pod1    1&#x2F;1       Running   0          12s       10.244.2.6   k8s-node02</span><br><span class="line">node-affinity-pod2    1&#x2F;1       Running   0          12s       10.244.2.5   k8s-node02</span><br></pre></td></tr></table></figure>
+
+<h3 id="podAntiAffinity"><a href="#podAntiAffinity" class="headerlink" title="podAntiAffinity"></a>podAntiAffinity</h3><p>Pod反亲和性场景，当应用服务A和数据库服务B要求尽量不要在同一台节点上的时候。</p>
+<p> kubectl explain pod.spec.affinity.podAntiAffinity 也分为硬反亲和性和软反亲和性调度（和podAffinity一样的配置）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">#首先把两个node打上同一个标签。</span><br><span class="line">kubectl label node k8s-node02 zone&#x3D;foo </span><br><span class="line">kubectl label node k8s-node03 zone&#x3D;foo</span><br><span class="line">#反硬亲和调度</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod1</span><br><span class="line">  labels:</span><br><span class="line">    name: podaffinity-myapp</span><br><span class="line">    tier: service</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: node-affinity-pod2</span><br><span class="line">  labels:</span><br><span class="line">    name: podaffinity-myapp</span><br><span class="line">    tier: front</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: myapp</span><br><span class="line">    image: ikubernetes&#x2F;myapp:v1</span><br><span class="line">  affinity:</span><br><span class="line">    podAntiAffinity:</span><br><span class="line">      requiredDuringSchedulingIgnoredDuringExecution:</span><br><span class="line">      - labelSelector:</span><br><span class="line">          matchExpressions:</span><br><span class="line">          - key: name</span><br><span class="line">            operator: In</span><br><span class="line">            values:</span><br><span class="line">            - podaffinity-myapp</span><br><span class="line">        topologyKey: zone</span><br></pre></td></tr></table></figure>
+
+<p>查看一下(因为zone这个key在每个node都有会，所以第二个Pod没有办法调度，所以一直Pending状态)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get  pod </span><br><span class="line">NAME                 READY     STATUS    RESTARTS   AGE</span><br><span class="line">node-affinity-pod1   1&#x2F;1       Running   0          11s</span><br><span class="line">node-affinity-pod2   0&#x2F;1       Pending   0          11s</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="污点容忍调度（Taint和Toleration）"><a href="#污点容忍调度（Taint和Toleration）" class="headerlink" title="污点容忍调度（Taint和Toleration）"></a>污点容忍调度（Taint和Toleration）</h3><p>前两种方式都是pod选择那个pod，而污点调度是node选择的pod，污点就是定义在节点上的键值属性数据。举要作用是让节点拒绝pod，拒绝不合法node规则的pod。Taint（污点）和 Toleration（容忍）是相互配合的，可以用来避免 pod 被分配到不合适的节点上,每个节点上都可以应用<strong>一个或多个</strong> taint ，这表示对于那些不能容忍这些 taint 的 pod，是不会被该节点接受的。</p>
+<h4 id="Taint"><a href="#Taint" class="headerlink" title="Taint"></a>Taint</h4><p>Taint是节点上属性，我们看一下Taints如何定义</p>
+<p>kubectl explain node.spec.taints（对象列表）</p>
+<ul>
+<li>key 定义一个key</li>
+<li>value 定义一个值</li>
+<li>effect pod不能容忍这个污点时，他的行为是什么，行为分为三种：NoSchedule 仅影响调度过程，对现存的pod不影响。PreferNoSchedule 系统将<em>尽量</em>避免放置不容忍节点上污点的pod，但这不是必需的。就是软版的NoSchedule NoExecute 既影响调度过程，也影响现存的pod，不满足的pod将被驱逐。</li>
+</ul>
+<h4 id="node-打-taint"><a href="#node-打-taint" class="headerlink" title="node 打 taint"></a>node 打 taint</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl taint NODE NAME KEY_1&#x3D;VAL_1:TAINT_EFFECT_1 ... KEY_N&#x3D;VAL_N:TAINT_EFFECT_N [options]</span><br><span class="line">增加taint</span><br><span class="line">kubectl  taint node k8s-node02 node-type&#x3D;prod:NoSchedule</span><br><span class="line">删除taint</span><br><span class="line">kubectl  taint node k8s-node02 node-type:NoSchedule-</span><br></pre></td></tr></table></figure>
+
+<h4 id="tolerations"><a href="#tolerations" class="headerlink" title="tolerations"></a>tolerations</h4><ul>
+<li>key 被容忍的key</li>
+<li>tolerationSeconds 被驱逐的宽限时间，默认是0 就是立即被驱逐</li>
+<li>value 被容忍key的值</li>
+<li>operator Exists只要key在就可以调度，Equal（等值比较）必须是值要相同</li>
+<li>effect 节点调度后的操作</li>
+</ul>
+<p>创建一个容忍</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: apps&#x2F;v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: myapp-deploy</span><br><span class="line">  namespace: default</span><br><span class="line">spec:</span><br><span class="line">  replicas: 3</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: myapp</span><br><span class="line">      release: dev</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: myapp</span><br><span class="line">        release: dev</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: myapp-containers</span><br><span class="line">        image: ikubernetes&#x2F;myapp:v2</span><br><span class="line">        ports:</span><br><span class="line">        - name: http</span><br><span class="line">          containerPort: 80</span><br><span class="line">      tolerations:</span><br><span class="line">      - key: &quot;node-type&quot;</span><br><span class="line">        operator: &quot;Equal&quot;</span><br><span class="line">        value: &quot;prod&quot;</span><br><span class="line">        effect: &quot;NoSchedule&quot;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0rancher/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0rancher/" class="post-title-link" itemprop="url">k8s控制台rancher</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 13:16:28 / Modified: 14:33:30" itemprop="dateCreated datePublished" datetime="2020-11-30T13:16:28+08:00">2020-11-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/" class="post-title-link" itemprop="url">k8s控制台Dashboard</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 13:15:52 / Modified: 14:33:17" itemprop="dateCreated datePublished" datetime="2020-11-30T13:15:52+08:00">2020-11-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>作者：<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab">Happy老师</a></p>
+<p>出处：[<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab/2496756]">https://blog.51cto.com/happylab/2496756]</a>(</p>
+<h2 id="kubernetes-dashboard简介"><a href="#kubernetes-dashboard简介" class="headerlink" title="kubernetes-dashboard简介"></a>kubernetes-dashboard简介</h2><p>kubernetes中管理集群中资源的方式通常有四种：命令行、YAML、API和图形界面，四种不同的方式适用于不同的人群和场景，对比如下：</p>
+<ul>
+<li>命令行kubectl，kubectl提供了命令行管理kubernetes资源<ul>
+<li>优点：使用方便、便捷、快速管理集群资源</li>
+<li>缺点：功能相对有限，部分操作无法支持，有一定的门槛</li>
+</ul>
+</li>
+<li>YAML资源定义，kubernetes中最终转换形式，推荐使用方式<ul>
+<li>优点：功能齐备，能够定义kubernetes的所有对象和资源</li>
+<li>缺点：门槛较高，需要具备专业技术能力，使用排障难度大</li>
+</ul>
+</li>
+<li>API管理接入，提供各种编程语言SDK接口，方便各种编程语言应用程序接入<ul>
+<li>优点：适配各种编程语言，如Java，Go，Python，C等，方便开发kubernetes</li>
+<li>缺点：门槛较高，适用于开发人员</li>
+</ul>
+</li>
+<li>图形kubernetes-dashboard，提供图形化管理界面，能够利用metric-server实现node和pod的监控<ul>
+<li>优点：使用简单，便捷，适合大众。</li>
+<li>缺点：功能相对简单，功能原生，适用于demo</li>
+</ul>
+</li>
+</ul>
+<h2 id="kubernetes-dashboard安装"><a href="#kubernetes-dashboard安装" class="headerlink" title="**kubernetes-**dashboard安装"></a>**kubernetes-**dashboard安装</h2><p>社区提供了kubernetes-dashbaord的YAML资源定义文件，直接下载YAML文件安装即可实现dashboard的安装接入，需要准备条件如下：</p>
+<ul>
+<li>已安装好的kubernetes集群，本文环境为1.15.3</li>
+<li>metric-server监控，node监控和pod监控视图需依赖于监控系统</li>
+<li>RBAC认证授权，设置好账户并授予访问权限</li>
+</ul>
+<p>1、下载kubernetes-dashboard安装文件并应用YAML资源定义</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@node-1 ~]# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta8/aio/deploy/recommended.yaml</span><br><span class="line">namespace/kubernetes-dashboard created</span><br><span class="line">serviceaccount/kubernetes-dashboard created</span><br><span class="line">service/kubernetes-dashboard created</span><br><span class="line">secret/kubernetes-dashboard-certs created</span><br><span class="line">secret/kubernetes-dashboard-csrf created</span><br><span class="line">secret/kubernetes-dashboard-key-holder created</span><br><span class="line">configmap/kubernetes-dashboard-settings created</span><br><span class="line">role.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard configured</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard unchanged</span><br><span class="line">deployment.apps/kubernetes-dashboard created</span><br><span class="line">service/dashboard-metrics-scraper created</span><br><span class="line">deployment.apps/dashboard-metrics-scraper created</span><br></pre></td></tr></table></figure>
+
+<p>安装文件中定义了dashboard相关的资源，可以查阅YAML文件，资源包含有：</p>
+<ul>
+<li>kubernetes-dashboard命名空间</li>
+<li>ServiceAccount访问用户</li>
+<li>Service服务访问应用，默认为ClusterIP</li>
+<li>Secrets，存放有kubernetes-dashboard-certs，kubernetes-dashboard-csrf，kubernetes-dashboard-key-holder证书</li>
+<li>ConfigMap配置文件</li>
+<li>RBAC认证授权，包含有Role，ClusterRole，RoleBinding，ClusterRoleBinding</li>
+<li>Deployments应用，kubernetes-dashboard核心镜像，还有一个和监控集成的dashboard-metrics-scraper</li>
+</ul>
+<p>2、校验资源的安装情况，kubernetes-dashbaord的资源都安装在kubernetes-dashboard命名空间下,包含有Deployments，Services，Secrets，ConfigMap等</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/1.gif"></p>
+<p>3、kubernetes-dashbaord安装完毕后，kubernetes-dashboard默认service的类型为ClusterIP，为了从外部访问控制面板，开放为NodePort类型</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/2.gif"></p>
+<p>4、此时通过https协议访问30433端口即可打开dashboard的控制台，为了保护数据安全性，集群默认开启了RBAC认证授权，需要授予权限的用户才可以访问到kubernetes集群，因此需要授权用户访问集群，集群中已定有了cluster-admin的角色和相关的Role，ClusterRole和ClusterRoleBinding角色，定义ServiceAccount将其关联即可，如下:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">[root@node-1 ~]# cat dashboard-rbac.yaml </span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ServiceAccount</span><br><span class="line">metadata:</span><br><span class="line">  name: happycloudlab </span><br><span class="line">  namespace: kubernetes-dashboard</span><br><span class="line">---</span><br><span class="line">apiVersion: rbac.authorization.k8s.io/v1</span><br><span class="line">kind: ClusterRoleBinding</span><br><span class="line">metadata:</span><br><span class="line">  name: happycloudlab</span><br><span class="line">roleRef:</span><br><span class="line">  apiGroup: rbac.authorization.k8s.io</span><br><span class="line">  kind: ClusterRole</span><br><span class="line">  name: cluster-admin</span><br><span class="line">subjects:</span><br><span class="line">- kind: ServiceAccount</span><br><span class="line">  name: happycloudlab</span><br><span class="line">  namespace: kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+
+<p>5、应用RBAC规则，创建一个happycloudlab的用户，并和cluster-admin的角色关联</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@node-1 ~]# kubectl apply -f dashboard-rbac.yaml </span><br><span class="line">serviceaccount/happycloudlab created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/happylau created</span><br><span class="line">[root@node-1 ~]# kubectl get serviceaccounts -n kubernetes-dashboard </span><br><span class="line">NAME                   SECRETS   AGE</span><br><span class="line"><span class="keyword">default</span>                <span class="number">1</span>         <span class="number">114</span>m</span><br><span class="line">happycloudlab   <span class="number">1</span>         <span class="number">8</span>s</span><br><span class="line">kubernetes-dashboard   <span class="number">1</span>         <span class="number">114</span>m</span><br></pre></td></tr></table></figure>
+
+<p>6、此时通过kubernetes-dashboard-csrf服务会自动创建一个和用户名关联的Secrets，通过token字段来登陆，token通过base64加密，解密后即可登录，如下演示登录的过程<img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/3.gif"></p>
+<p>自此，kubernetes-dashboard安装完毕，通过RBAC认证授权特定用户访问集群权限，接下来一起探索dashboard带来的魔力吧。</p>
+<h2 id="探索kubernetes-dashboard"><a href="#探索kubernetes-dashboard" class="headerlink" title="探索kubernetes-dashboard"></a>探索<strong>kubernetes-dashboard</strong></h2><p>kubernetes-dashboard图形工具能提供以下功能：</p>
+<ul>
+<li>查看kubernetes中的资源对象，包含kubernetes中各种资源<ul>
+<li>Cluster 集群级别的资源，如命名空间，节点，PV，StorageClass，ClusterRole等</li>
+<li>Workloads，不同类型的工作负载，包含Deployments，StatefulSets，DaemonSets，Jobs等</li>
+<li>Discovery and LoadBalancing，服务发现和负载均衡，包含service和ingress</li>
+<li>ConfigMap and Storage，包含ConfigMap，Secrets和PVC</li>
+<li>Costom Resource Definition，自定义资源定义</li>
+</ul>
+</li>
+<li>kubernetes资源监控，调用metric-server监控系统，实现Cluster集群，Workloads应用负载，存储等资源的监控</li>
+<li>管理资源对象，包含创建，编辑yaml，删除负载等，主要是以Deployments等应用为主的管理</li>
+</ul>
+<p>1、查看集群整体概览资源，可以看到整体集群，应用负载，Pod资源的资源使用情况</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/4.gif" alt="资源概览"></p>
+<p>2、Cluster集群资源管理，包含还有Nodes，Namespace，StorageClass等，提供在线编辑yaml方式</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/5.gif" alt="集群资源"></p>
+<p>3、查看应用工作负载Workloads，包含各种不同的工作负载如Deployments，StatefulSets，Jobs等</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/6.gif" alt="工作负载"></p>
+<p>4、部署Deployments工作负载，支持从YAML文件输入，YAML文件加载和图形界面部署应用</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/7.gif" alt="部署工作负载"></p>
+<p>5、工作负载管理，扩展工作负载副本数目，滚动更新等</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/8.gif" alt="扩展副本+滚动更新"></p>
+<p>6、远程登录容器和查看容器日志</p>
+<p><img src="/2020/11/30/k8s%E6%8E%A7%E5%88%B6%E5%8F%B0Dashboard/9.gif" alt="登录容器和查看日志"></p>
+<h2 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h2><p>kubernetes-dashboard提供了原生的k8s管理工具，提供一个便捷的可视化界面，方便使用控制台管理k8s资源，dashboard提供的功能相对原生，企业可以根据公司的需求通过api进行二次开发，以满足需求。对于k8s管理员而言，一般以使用命令行或yaml文件为主。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p>dashboard安装手册：<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/">https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/</a></p>
+<p>RBAC认证授权：<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/">https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E7%BD%91%E7%BB%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/k8s%E7%BD%91%E7%BB%9C/" class="post-title-link" itemprop="url">k8s网络</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 13:15:18 / Modified: 18:09:42" itemprop="dateCreated datePublished" datetime="2020-11-30T13:15:18+08:00">2020-11-30</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E5%9F%BA%E7%A1%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/" class="post-title-link" itemprop="url">k8s基础</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 13:14:55 / Modified: 18:11:32" itemprop="dateCreated datePublished" datetime="2020-11-30T13:14:55+08:00">2020-11-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>作者：<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab">Happy老师</a></p>
+<p>出处：<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab/2496756">https://blog.51cto.com/happylab/2496756</a></p>
+<h2 id="kubernetes简介与功能"><a href="#kubernetes简介与功能" class="headerlink" title="kubernetes简介与功能"></a>kubernetes简介与功能</h2><p>Kubernetes是google开源的一套微服务，容器化的编排引擎，提供容器话应用的自动化部署，横向扩展和管理，是google内部容器十多年实战沉淀的结晶，已战胜Swarm，Mesos成为容器编排的行业标准。</p>
+<p>三大容器编排引擎：</p>
+<ul>
+<li>Swarm Docker原生提供的容器化编排引擎，随着docker支持kubernetes逐渐废弃</li>
+<li>Mesos 结合Marathon提供容器调度编排的能力，还能提供其他framwork的调度</li>
+<li>Kubernetes 已成为容器编排引擎的唯一标准，越来越多程序支持kubernetes。</li>
+</ul>
+<p>kuberntes内置有很多非常优秀的特性使开发者专注于业务本身，其包含的功能如下：</p>
+<p><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/c23e352655b2ddd6d7e9fffd224accc9.png" alt="kubernetes入门到实战（一）初窥kubernetes全貌"></p>
+<ul>
+<li>Service discovery and load balancing，服务发现和负载均衡，通过DNS实现内部解析，service实现负载均衡</li>
+<li>Storage orchestration，存储编排，通过plungin的形式支持多种存储，如本地，nfs，ceph，公有云快存储等</li>
+<li>Automated rollouts and rollbacks，自动发布与回滚，通过匹配当前状态与目标状态一致，更新失败时可回滚</li>
+<li>Automatic bin packing，自动资源调度，可以设置pod调度的所需（requests）资源和限制资源（limits）</li>
+<li>Self-healing，内置的健康检查策略，自动发现和处理集群内的异常，更换，需重启的pod节点</li>
+<li>Secret and configuration management，密钥和配置管理，对于敏感信息如密码，账号的那个通过secret存储，应用的配置文件通过configmap存储，避免将配置文件固定在镜像中，增加容器编排的灵活性</li>
+<li>Batch execution，批处理执行，通过job和cronjob提供单次批处理任务和循环计划任务功能的实现</li>
+<li>Horizontal scaling,横向扩展功能，包含有HPA和AS，即应用的基于CPU利用率的弹性伸缩和基于平台级的弹性伸缩，如自动增加node和删除nodes节点。</li>
+</ul>
+<h2 id="kubernetes架构解析"><a href="#kubernetes架构解析" class="headerlink" title="kubernetes架构解析"></a>kubernetes架构解析</h2><p><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/9b512f2d62081a5fa35d8266f5c03a78.png" alt="kubernetes组件"></p>
+<p>kubernetes包含两种角色：master节点和node节点，master节点是集群的控制管理节点，作为整个k8s集群的大脑。</p>
+<ul>
+<li>负责集群所有接入请求(kube-apiserver)，在整个集群的入口；</li>
+<li>集群资源调度(kube-controller-scheduler)，通过watch监视pod的创建，负责将pod调度到合适的node节点；</li>
+<li>集群状态的一致性(kube-controller-manager)，通过多种控制器确保集群的一致性，包含有Node Controller，Replication Controller，Endpoints Controller等；</li>
+<li>元数据信息存储(etcd)，数据持久存储化，存储集群中包括node，pod，rc，service等数据；</li>
+</ul>
+<p>node节点是实际的工作节点，负责集群负载的实际运行，即pod运行的载体，其通常包含三个组件：Container Runtime，kubelet和kube-proxy</p>
+<ul>
+<li>Container Runtime是容器运行时，负责实现container生命周期管理，如docker，containerd，rktlet；</li>
+<li>kubelet负责镜像和pod的管理，</li>
+<li>kube-proxy是service服务实现的抽象，负责维护和转发pod的路由，实现集群内部和外部网络的访问。</li>
+</ul>
+<p>其他组件还包括：</p>
+<ul>
+<li>cloud-controller-manager，用于公有云的接入实现，提供节点管理(node)，路由管理，服务管理(LoadBalancer和Ingress)，存储管理(Volume，如云盘，NAS接入)，需要由公有云厂商实现具体的细节，kubernetes提供实现接口的接入，如腾讯云目前提供CVM的node管理，节点的弹性伸缩(AS),负载均衡的接入(CLB),存储的管理(CBS和CFS)等产品的集成；</li>
+<li>DNS组件由kube-dns或coredns实现集群内的名称解析；</li>
+<li>kubernetes-dashboard用于图形界面管理；</li>
+<li>kubectl命令行工具进行API交互；</li>
+<li>服务外部接入，通过ingress实现七层接入，由多种controller控制器组成<ul>
+<li>traefik</li>
+<li>nginx ingress controller</li>
+<li>haproxy ingress controller</li>
+<li>公有云厂商ingress controller</li>
+</ul>
+</li>
+<li>监控系统用于采集node和pod的监控数据<ul>
+<li>metric-server 核心指标监控</li>
+<li>prometheus 自定义指标监控，提供丰富功能</li>
+<li>heapster+influxdb+grafana 旧核心指标监控方案，现已废弃</li>
+</ul>
+</li>
+<li>日志采集系统，用于收集容器的业务数据,实现日志的采集，存储和展示，由EFK实现<ul>
+<li>Fluentd 日志采集</li>
+<li>ElasticSearch 日志存储+检索</li>
+<li>Kiabana 数据展示</li>
+</ul>
+</li>
+</ul>
+<h2 id="kubernetes生态"><a href="#kubernetes生态" class="headerlink" title="kubernetes生态"></a>kubernetes生态</h2><p><a target="_blank" rel="noopener" href="https://landscape.cncf.io/">https://landscape.cncf.io/</a></p>
+<h2 id="kubernetes高可用架构"><a href="#kubernetes高可用架构" class="headerlink" title="kubernetes高可用架构"></a>kubernetes高可用架构</h2><p>kubernetes高可用集群通常由3或5个节点组成高可用集群，需要保障各个节点的高可用性</p>
+<ul>
+<li>etcd 内置集群机制，保障数据持久存储</li>
+<li>kube-apiserver 无状态api服务，有负载均衡调度器做负载分发，如haproxy或nginx</li>
+<li>kube-scheduler 内置选举机制，保障调度器高可用，确保同个时刻一个leader节点工作，其他处于阻塞，防止脑裂</li>
+<li>kube-controller-manager 内置的选举机制保障控制器高可用，机制和kube-scheduler一致。<br><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/61235bc58859458922f5ab4f6484ed99.jpg" alt="kubernetes入门到实战（一）初窥kubernetes全貌"></li>
+</ul>
+<h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h2><ol>
+<li>kubernetes功能介绍，<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/">https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/</a></li>
+<li>kubernetes组件介绍<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/overview/components/">https://kubernetes.io/docs/concepts/overview/components/</a></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/docker%E7%BD%91%E7%BB%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/docker%E7%BD%91%E7%BB%9C/" class="post-title-link" itemprop="url">docker网络</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 13:04:37 / Modified: 13:05:18" itemprop="dateCreated datePublished" datetime="2020-11-30T13:04:37+08:00">2020-11-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="docker网络知识"><a href="#docker网络知识" class="headerlink" title="docker网络知识"></a>docker网络知识</h2><h3 id="docker网络类型（–network指定网络）"><a href="#docker网络类型（–network指定网络）" class="headerlink" title="docker网络类型（–network指定网络）"></a>docker网络类型（–network指定网络）</h3><ul>
+<li><p>bridge  默认连接到docker0这个网桥上</p>
+</li>
+<li><p>none 容器只能使用127.0.0.1的本机网络</p>
+</li>
+<li><p>host 与宿主机共享ip</p>
+</li>
+<li><p>link  docker run -it –name vm5 –link vm1:db1 ubuntu 创建一个容器vm5，并使用link方式连接vm1,此时的vm1的是容器名，db1是容器的别名</p>
+</li>
+<li><p>container 网络模式，必须同一个宿主机</p>
+</li>
+<li><p>自定义网络模式：</p>
+<ul>
+<li>bridge network  可以通过容器名互通，单一主机上运行一个相对小的网络，使用桥接网络</li>
+<li>overlay network  创建一个大网络，可以通过overlay 网络来实现</li>
+<li>MACVLAN network</li>
+<li>network plugin</li>
+<li>remote network</li>
+</ul>
+</li>
+<li><p>跨主机docker容器通信方案介绍（就是自定义网络下的方案，除开bridge）</p>
+<ul>
+<li><p>隧道（Overlay Networking）方案：</p>
+<ul>
+<li>  Weave：UDP广播，本机建立新的BR，通过PCAP互通。</li>
+<li>  Open vSwitch(OVS)：基于VxLAN和GRE协议，但是性能方面损失比较严重。</li>
+<li>  Flannel：UDP广播，VxLan。  </li>
+</ul>
+</li>
+<li><p>路由方案</p>
+<ul>
+<li>  Calico：基于BGP协议的路由方案，支持很细致的ACL控制，对混合云亲和度比较高。</li>
+<li>  Macvlan：从逻辑和Kernel层来看隔离性和性能最优的方案，基于二层隔离，所以需要二层路由器支持，大多数云服务商不支持，所以混合云上比较难以实现。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><code>    隧道方案在IaaS层的网络中应用也比较多，大家共识是随着节点规模的增长复杂度会提升，而且出了网络问题跟踪起来比较麻烦，大规模集群情况下这是需要考虑的一个点。</code></p>
+<p><code>    路由方案一般是从3层或者2层实现隔离和跨主机容器互通的，出了问题也很容易排查。</code></p>
+<h5 id="bridge-模式的网络。其特点如下："><a href="#bridge-模式的网络。其特点如下：" class="headerlink" title="bridge 模式的网络。其特点如下："></a>bridge 模式的网络。其特点如下：</h5><ul>
+<li>  使用一个 linux bridge，默认为 docker0</li>
+<li>  使用 veth 对，一头在容器的网络 namespace 中，一头在 docker0 上</li>
+<li>  该模式下Docker Container不具有一个公有IP，因为宿主机的IP地址与vethpair的 IP地址不在同一个网段内</li>
+<li>  Docker采用NAT网络地址转换(Network Address Translation)方式，将容器内部的服务监听的端口与宿主机的某一个端口port 进行“绑定”，使得宿主机以外的世界可以主动将网络报文发送至容器内部</li>
+<li>  外界访问容器内的服务时，需要访问宿主机的 IP 以及宿主机的端口 port</li>
+<li>  NAT 模式由于是在三层网络上的实现手段，故肯定会影响网络的传输效率。</li>
+<li>容器拥有独立、隔离的网络栈；让容器和宿主机以外的世界通过NAT建立通信<br>  <img src="/2020/11/30/docker%E7%BD%91%E7%BB%9C/bridge_20201013104542.png" alt="输入图片描述"></li>
+</ul>
+<h5 id="主要使用的网络模式"><a href="#主要使用的网络模式" class="headerlink" title="主要使用的网络模式"></a>主要使用的网络模式</h5><ul>
+<li>Libnetwork 从Docker核心代码中分离出去，形成一个单独的库</li>
+<li>Flannel CoreOS团队针对Kubernetes设计的一个重载网络工具，它的主要思路是：预先留出一个网段，每个主机使用其中一部分，然后每个容器被分配不同的ip；让所有的容器认为大家在同一个直连的网络，底层通过UDP/VxLAN等进行报文的封装和转发</li>
+<li>Calico 是一个纯3层的数据中心网络方案，而且无缝集成像OpenStack这种IaaS云架构，能够提供可控的VM、容器、裸机之间的IP通信</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d84cdfe2ea86">详细网络知识</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/dhaiuda/article/details/82824333">docker的overlay网络</a></p>
+<h3 id="docker网络操作"><a href="#docker网络操作" class="headerlink" title="docker网络操作"></a>docker网络操作</h3><ul>
+<li>docker network ls            查看docker网卡</li>
+<li>docker network rm 网卡id    删除docker网卡</li>
+<li>docker network inspect 网卡id   查看docker网卡的相关详细信息</li>
+<li>创建网络，如下使用–subnet创建网络（用来指定ip段），–gateway（用来指定网关），my_net3为创建的名字：<br>docker network create –driver bridge –subnet 172.22.1.0/24 –gateway 172.22.1.1 my_net3</li>
+</ul>
+<h3 id="设置主机名和DNS"><a href="#设置主机名和DNS" class="headerlink" title="设置主机名和DNS"></a>设置主机名和DNS</h3><p>docker run -it –name mycon -h lion –dns=8.8.8.8 ubuntu:14.04</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/docker%E5%9F%BA%E7%A1%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/30/docker%E5%9F%BA%E7%A1%80/" class="post-title-link" itemprop="url">docker基础</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-11-30 11:18:22 / Modified: 13:43:39" itemprop="dateCreated datePublished" datetime="2020-11-30T11:18:22+08:00">2020-11-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>Docker提供了一种将应用程序安全，隔离运行的一种方式，能够将应用程序依赖和库文件打包在一个容器中，后续再任何地方运行起来即可，其包含了应用程序所依赖相关环境，一次构建，任意运行（build once，run anywhere）</p>
+<h2 id="Docker-包括三个基本概念"><a href="#Docker-包括三个基本概念" class="headerlink" title="Docker 包括三个基本概念"></a>Docker 包括三个基本概念</h2><ul>
+<li>镜像（Image）：Docker 镜像（Image），就相当于是一个 root 文件系统。比如官方镜像 ubuntu:16.04 就包含了完整的一套 Ubuntu16.04 最小系统的 root 文件系统。</li>
+<li>容器（Container）：镜像（Image）和容器（Container）的关系，就像是面向对象程序设计中的类和实例一样，镜像是静态的定义，容器是镜像运行时的实体。容器可以被创建、启动、停止、删除、暂停等。</li>
+<li>仓库（Repository）：仓库可看成一个代码控制中心，用来保存镜像。<br>Docker 使用客户端-服务器 (C/S) 架构模式，使用远程API来管理和创建Docker容器。</li>
+</ul>
+<p>Docker容器通过Docker镜像来创建。</p>
+<h2 id="Docker原理"><a href="#Docker原理" class="headerlink" title="Docker原理"></a>Docker原理</h2><img src="/2020/11/30/docker%E5%9F%BA%E7%A1%80/6d20ecb467fa6d571d7dd74fe0187f07.png" alt="docker架构" style="zoom: 50%;">
+
+<table>
+<thead>
+<tr>
+<th align="left">概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Docker 镜像(Images)</td>
+<td>Docker 镜像是用于创建 Docker 容器的模板，比如 Ubuntu 系统。</td>
+</tr>
+<tr>
+<td align="left">Docker 容器(Container)</td>
+<td>容器是独立运行的一个或一组应用，是镜像运行时的实体。</td>
+</tr>
+<tr>
+<td align="left">Docker Daemon</td>
+<td>容器管理组件，守护进程，负载容器，镜像，存储，网络等管理</td>
+</tr>
+<tr>
+<td align="left">Docker 客户端(Client)</td>
+<td>Docker客户端通过命令行或者其他工具使用 <a target="_blank" rel="noopener" href="https://docs.docker.com/develop/sdk/">Docker SDK </a> 与Docker的守护进程（Docker Daemon）通信</td>
+</tr>
+<tr>
+<td align="left">Docker 主机(Host)</td>
+<td>一个物理或者虚拟的机器用于执行 Docker 守护进程和容器。</td>
+</tr>
+<tr>
+<td align="left">Docker Registry</td>
+<td>Docker 仓库用来保存镜像，可以理解为代码控制中的代码仓库。容器镜像仓库，负责存储，分发，打包</td>
+</tr>
+<tr>
+<td align="left">Docker Object</td>
+<td>容器对象，主要包含container和images</td>
+</tr>
+<tr>
+<td align="left">Docker Machine</td>
+<td>是一个简化Docker安装的命令行工具，通过一个简单的命令行即可在相应的平台上安装Docker，<br>比如VirtualBox、 Digital Ocean、Microsoft Azure。</td>
+</tr>
+<tr>
+<td align="left">docker swarm</td>
+<td>Swarm 集群中每台 Docker 主机称为一个节点。集群管理，容器编排项目</td>
+</tr>
+<tr>
+<td align="left">docker compose</td>
+<td>容器编排项目，Docker Compose 是一个在单个服务器或主机上创建多个容器的工具</td>
+</tr>
+</tbody></table>
+<p><a target="_blank" rel="noopener" href="https://hub.docker.com/">Docker Hub</a> 提供了庞大的镜像集合供使用。一个 Docker Registry 中可以包含多个仓库（Repository）；每个仓库可以包含多个标签（Tag）；每个标签对应一个镜像。</p>
+<p>通常，一个仓库会包含同一个软件不同版本的镜像，而标签就常用于对应该软件的各个版本。我们可以通过 &lt;仓库名&gt;:&lt;标签&gt; 的格式来指定具体是这个软件哪个版本的镜像。如果不给出标签，将以 latest 作为默认标签。</p>
+<h2 id="容器优缺点"><a href="#容器优缺点" class="headerlink" title="容器优缺点"></a>容器优缺点</h2><p>容器给应用程序开发环境带来很大的便利，从根本上解决了容器的环境依赖，打包等问题，然而，Docker带来的容器打包的便利，同时也带来了以下的挑战：</p>
+<ul>
+<li><p>容器如何调度，分发</p>
+</li>
+<li><p>多台机器如何协同工作</p>
+</li>
+<li><p>Docker主机故障时应用如何恢复</p>
+</li>
+<li><p>如何保障应用高可用，横向扩展，动态伸缩</p>
+</li>
+</ul>
+<img src="/2020/11/30/docker%E5%9F%BA%E7%A1%80/875f955cc9bb7b51036b58e59a2763bb.png" alt="容器挑战" style="zoom:50%;">
+
+<h2 id="docker容器命令"><a href="#docker容器命令" class="headerlink" title="docker容器命令"></a>docker容器命令</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker container ls -q </span><br><span class="line">docker container stop|start|rm nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="创建容器"><a href="#创建容器" class="headerlink" title="创建容器"></a>创建容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --name nginx-test -p 8080:80 -d nginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="进入容器"><a href="#进入容器" class="headerlink" title="进入容器"></a>进入容器</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it nginx sh|bash</span><br></pre></td></tr></table></figure>
+
+<h2 id="dockerfile"><a href="#dockerfile" class="headerlink" title="dockerfile"></a>dockerfile</h2><p><a target="_blank" rel="noopener" href="https://www.runoob.com/docker/docker-dockerfile.html" title="dockerfile描述文件细节">如何写dockerfile文件</a></p>
+<h2 id="docker-compose"><a href="#docker-compose" class="headerlink" title="docker compose"></a>docker compose</h2><p>容器编排工具 <a target="_blank" rel="noopener" href="https://www.runoob.com/docker/docker-compose.html" title="docker-compose描述文件细节">如何写docker-compose.yml</a></p>
+<h4 id="命令行"><a href="#命令行" class="headerlink" title="命令行"></a>命令行</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up</span><br><span class="line">docker-compose up -d //后台运行</span><br><span class="line">docker-compose ps</span><br></pre></td></tr></table></figure>
+
+<h2 id="docker-swarm"><a href="#docker-swarm" class="headerlink" title="docker swarm"></a>docker swarm</h2><p>Swarm 集群中每台 Docker 主机称为一个节点。其中主动初始化一个 Swarm 集群的节点称为管理节点（Manager），加入一个Swarm 集群的节点称为工作节点（Worker Node）。工作节点是任务执行节点，管理节点将任务下发至工作节点执行。管理节点默认也作为工作节点。一个 Swarm 集群可以有多个管理节点，但只有一个管理节点可以成为 leader</p>
+<p>swarm 集群由管理节点（manager）和工作节点（work node）构成。</p>
+<p>swarm mananger：负责整个集群的管理工作包括集群配置、服务管理等所有跟集群有关的工作。<br>work node：即图中的 available node，主要负责运行相应的服务来执行任务（task）。</p>
+<h4 id="基本实用命令"><a href="#基本实用命令" class="headerlink" title="基本实用命令"></a>基本实用命令</h4><ul>
+<li>docker swarm init –advertise-addr 192.168.58.144</li>
+<li>docker swarm join 。。。</li>
+<li>docker swarm leave –f</li>
+<li>docker node ls</li>
+<li>docker node ls –filter role=worker</li>
+<li>docker node ls –filter role=manager</li>
+<li>docker node update swarm02 –role=worker //将swarm02节点降级为worker节点</li>
+<li>docker service inspect mynginx</li>
+<li>docker service create –replicas 3 -p 8888:80 –name mynginx nginx</li>
+<li>docker service rm mynginx</li>
+<li>docker stack rm getstartedlab</li>
+<li>docker stack deploy -c docker-compose.yml getstartedlab</li>
+</ul>
+<h4 id="docker-service"><a href="#docker-service" class="headerlink" title="docker service"></a>docker service</h4><p>与docker swarm一起使用，docker service部署的是单个服务</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker service create --replicas 3 -p 8888:80 --name mynginx nginx</span><br></pre></td></tr></table></figure>
+
+<h4 id="Docker-Stack"><a href="#Docker-Stack" class="headerlink" title="Docker Stack"></a>Docker Stack</h4><p>与docker swarm一起使用，使用docker-compose.yml配置文件，进行多服务编排部署</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker stack  deploy -c docker-compose1.yml phpadmin</span><br><span class="line"></span><br><span class="line">docker stack rm getstartedlab</span><br></pre></td></tr></table></figure>
+
+<h4 id="Swarm-Service网络模型"><a href="#Swarm-Service网络模型" class="headerlink" title="Swarm Service网络模型"></a>Swarm Service网络模型</h4><ul>
+<li><strong>Overlay networks</strong> 管理 Swarm 中 Docker 守护进程间的通信。你可以将服务附加到一个或多个已存在的 overlay 网络上，使得服务与服务之间能够通信。</li>
+<li><strong>ingress network</strong> 是一个特殊的 overlay 网络，用于服务节点间的负载均衡。当任何 Swarm 节点在发布的端口上接收到请求时，它将该请求交给一个名为 IPVS 的模块。IPVS 跟踪参与该服务的所有IP地址，选择其中的一个，并通过 ingress 网络将请求路由到它。<br>初始化或加入 Swarm 集群时会自动创建 ingress 网络，大多数情况下，用户不需要自定义配置，但是 docker 17.05 和更高版本允许你自定义。</li>
+<li><strong>docker_gwbridge</strong>是一种桥接网络，将 overlay 网络（包括 ingress 网络）连接到一个单独的 Docker 守护进程的物理网络。默认情况下，服务正在运行的每个容器都连接到本地 Docker 守护进程主机的 docker_gwbridge 网络。<br>docker_gwbridge 网络在初始化或加入 Swarm 时自动创建。大多数情况下，用户不需要自定义配置，但是 Docker 允许自定义。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">docker network create</span><br><span class="line">docker network connect</span><br><span class="line">docker network ls</span><br><span class="line">docker network rm</span><br><span class="line">docker network disconnect</span><br><span class="line">docker network inspect</span><br><span class="line">docker run --rm --network=host alpine ifconfig</span><br></pre></td></tr></table></figure>
+
+<h4 id="swarm编排工具的控制台docker-portainer"><a href="#swarm编排工具的控制台docker-portainer" class="headerlink" title="swarm编排工具的控制台docker portainer"></a>swarm编排工具的控制台docker portainer</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">docker service create \</span><br><span class="line">--name portainer \</span><br><span class="line">--publish 9000:9000 \</span><br><span class="line">--constraint &#x27;node.role == manager&#x27; \</span><br><span class="line">--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \</span><br><span class="line">portainer/portainer \</span><br><span class="line">-H unix:///var/run/docker.sock</span><br></pre></td></tr></table></figure>
+
+<h2 id="docker-compose与docker-swarm区别"><a href="#docker-compose与docker-swarm区别" class="headerlink" title="docker compose与docker swarm区别"></a>docker compose与docker swarm区别</h2><p>Docker Swarm 和 Docker Compose 一样，都是 Docker 官方容器编排项目，但不同的是，Docker Compose 是一个在单个服务器或主机上创建多个容器的工具，而 Docker Swarm 则可以在多个服务器或主机上创建容器集群服务，对于微服务的部署，显然 Docker Swarm 会更加适合</p>
+<h2 id="Docker-Machine"><a href="#Docker-Machine" class="headerlink" title="Docker Machine"></a>Docker Machine</h2><p>创建Docker主机（开放远程2375端口 安装docker）</p>
+<ul>
+<li>docker-machine create -d hyperv –hyperv-virtual-switch “myswitch” myvm2</li>
+<li>docker-machine env myvm3</li>
+<li>docker-machine ssh myvm1</li>
+<li>docker-machine ls</li>
+<li>docker-machine stop</li>
+<li>docker-machine start</li>
+<li>docker-machine env</li>
+<li>docker-machine regenerate-certs</li>
+</ul>
+<h2 id="镜像加速"><a href="#镜像加速" class="headerlink" title="镜像加速"></a>镜像加速</h2><p><a target="_blank" rel="noopener" href="http://hub-mirror.c.163.com/">http://hub-mirror.c.163.com</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/" class="post-title-link" itemprop="url">RabbitMQ基础</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-11-27 20:12:26" itemprop="dateCreated datePublished" datetime="2020-11-27T20:12:26+08:00">2020-11-27</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-15 10:27:37" itemprop="dateModified" datetime="2020-12-15T10:27:37+08:00">2020-12-15</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>消息队列可以实现流量削峰、降低系统耦合度、提高系统性能等。</p>
+<p><strong>RabbitMQ</strong>是一个实现了AMQP协议（Advanced Message Queue Protocol）的消息队列。</p>
+<h2 id="RabbitMQ中的概念"><a href="#RabbitMQ中的概念" class="headerlink" title="RabbitMQ中的概念"></a><strong>RabbitMQ中的概念</strong></h2><ul>
+<li><strong>producer</strong>： producer 是一个发送消息的应用</li>
+<li><strong>exchange</strong>：producer并不会直接将消息发送到 queue 上，而是将消息发送给exchange，由exchange按照一定规则转发给指定queue</li>
+<li><strong>queue</strong>： queue 用来存储 producer 发送的消息</li>
+<li><strong>consumer</strong>： consumer是接收并处理消息的应用</li>
+<li><strong>routing key</strong>：发送消息时绑定的路由key</li>
+<li><strong>binding key</strong>：队列与交换机绑定的key</li>
+<li><strong>consumerTag</strong>: 消费者标签，同一个会话， consumerTag 是固定的 可以做此会话的名字。</li>
+<li><strong>consumer</strong>：消费者，extends DefaultConsumer。一个channel上可以配置多个consumer，真正的接收消息类，有处理消息的方法</li>
+<li><strong>Envelope</strong>：可以获取交换机及routingKey信息和deliveryTag</li>
+<li><strong>deliveryTag</strong>： deliveryTag 每次接收消息+1，可以做此消息处理通道的名字。用来回传告诉 rabbitmq 这个消息处理成功 清除此消息</li>
+<li><strong>BasicProperties</strong>：基本属性，如Header中的信息。</li>
+<li><strong>Delivery</strong>：封装了Envelope，BasicProperties及字节数组消息</li>
+</ul>
+<h2 id="Exchanges交换机"><a href="#Exchanges交换机" class="headerlink" title="Exchanges交换机"></a>Exchanges交换机</h2><p><strong>默认Exchange(RabbitMQ自带的Direct交换机，没有名称，与所有队列相连)**：比较Message的routing key和Queue的名字，完全匹配时，Message才会发送到该Queue<br><img src="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/1-1607999220900.gif" style="zoom:80%;"><br>**Direct Exchange</strong>：比较Message的routing key和Queue的binding key，完全匹配时，Message才会发送到该Queue<br><img src="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/2.gif" style="zoom:80%;"><br><strong>Fanout Exchange</strong>：忽略key对比，发送Message到Exchange下游绑定的所有Queue<br><img src="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/1.gif" style="zoom: 80%;"><br><strong>Topic Exchange</strong>：比较Message的routing key和Queue的binding key，按规则匹配成功时，Message才会发送到该Queue</p>
+<ul>
+<li><strong>routing key命名规则</strong>：用”.”分割的字母或数字</li>
+<li><strong>匹配规则</strong>：<ul>
+<li>*：匹配单个字母或数字</li>
+<li>#：匹配0~多个字母或数字</li>
+<li>比如：*.stock.#与usd.stock、eur.stock.db匹配；但与stock.nasdaq不匹配<br><img src="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/640" alt="img"></li>
+</ul>
+</li>
+</ul>
+<p><strong>Headers Exchange</strong>：比较队列上带有的Headers的键值对是否和发送的消息Message对象带的message是否匹配，通过Headers上的键值对判断是使用全匹配还是包含匹配。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">headerMap.put(<span class="string">&quot;x-match&quot;</span>, (matchAll ? <span class="string">&quot;all&quot;</span> : <span class="string">&quot;any&quot;</span>));</span><br></pre></td></tr></table></figure>
+
+<h2 id="Queue队列"><a href="#Queue队列" class="headerlink" title="Queue队列"></a>Queue队列</h2><ul>
+<li>存放消息</li>
+<li>消息消费监听，监听的是队列，和其它如交换机没有关联</li>
+</ul>
+<h2 id="发送消息"><a href="#发送消息" class="headerlink" title="发送消息"></a>发送消息</h2><ul>
+<li>生产者指定Message的routing key，并指定Message发送到哪个Exchange</li>
+<li>Queue会通过binding key绑定到指定的Exchange</li>
+<li>Exchange根据对比Message的routing key和Queue的binding key，然后按一定的分发路由规则，决定Message发送到哪个Queue</li>
+</ul>
+<h2 id="监听消息"><a href="#监听消息" class="headerlink" title="监听消息"></a>监听消息</h2><p>​    监听指定队列，消息push到消费者端。spring的监听注解会自动创建不存在的交换机，队列，及绑定key。</p>
+<h3 id="消息队列有两种工作方式"><a href="#消息队列有两种工作方式" class="headerlink" title="消息队列有两种工作方式"></a>消息队列有两种工作方式</h3><ul>
+<li><p>轮询分发(默认)默认Spring是获取250个数据，RabbitMQ官方建议是30</p>
+</li>
+<li><p>公平分发即当某个消费者没有消费完成之前不用再分发消息。当执行时间增长的时候验证是否正确</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 消费者每次从队列获取的消息数量。此属性当不设置时为：轮询分发，设置为1为：公平分发</span></span><br><span class="line"><span class="meta">spring.rabbitmq.listener.simple.prefetch</span>=<span class="string">1</span></span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener(bindings = &#123;@QueueBinding(value = @Queue(value = &quot;direct.queue&quot;), exchange = @Exchange(value = &quot;direct.exchange&quot;), key = &quot;HelloWorld&quot;)&#125;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getDirectMessage</span><span class="params">(User user, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 模拟执行任务</span></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            <span class="comment">// 模拟异常</span></span><br><span class="line">            String is = <span class="keyword">null</span>;</span><br><span class="line">            is.toString();</span><br><span class="line">            <span class="comment">// 确认收到消息，false只确认当前consumer一个消息收到，true确认所有consumer获得的消息</span></span><br><span class="line">            channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">if</span> (message.getMessageProperties().getRedelivered()) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;消息已重复处理失败,拒绝再次接收&quot;</span> + user.getName());</span><br><span class="line">                <span class="comment">// 拒绝消息，requeue=false 表示不再重新入队，如果配置了死信队列则进入死信队列</span></span><br><span class="line">                channel.basicReject(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;消息即将再次返回队列处理&quot;</span> + user.getName());</span><br><span class="line">                <span class="comment">// requeue为是否重新回到队列，true重新入队</span></span><br><span class="line">                channel.basicNack(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>, <span class="keyword">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//e.printStackTrace();</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RabbitListener(queues = &quot;direct.queue&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getDirectMessageCopy</span><span class="params">(User user, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 模拟执行任务</span></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">            System.out.println(<span class="string">&quot;--jxb--MQConsumer--getDirectMessageCopy：&quot;</span> + user.toString());</span><br><span class="line">            <span class="comment">// 确认收到消息，false只确认当前consumer一个消息收到，true确认所有consumer获得的消息</span></span><br><span class="line">            channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">if</span> (message.getMessageProperties().getRedelivered()) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;消息已重复处理失败,拒绝再次接收！&quot;</span>);</span><br><span class="line">                <span class="comment">// 拒绝消息，requeue=false 表示不再重新入队，如果配置了死信队列则进入死信队列</span></span><br><span class="line">                channel.basicReject(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;消息即将再次返回队列处理！&quot;</span>);</span><br><span class="line">                <span class="comment">// requeue为是否重新回到队列，true重新入队</span></span><br><span class="line">                channel.basicNack(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>, <span class="keyword">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="拉取消息"><a href="#拉取消息" class="headerlink" title="拉取消息"></a>拉取消息</h2><p>​    主动拉取队列里的消息</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GetResponse response = channel.basicGet(ConnectionUtils.QUEUE_NAME, <span class="keyword">false</span>);</span><br><span class="line">System.out.println(<span class="keyword">new</span> String(response.getBody()));</span><br><span class="line">channel.basicAck(response.getEnvelope().getDeliveryTag(), <span class="keyword">false</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="基本AIPI"><a href="#基本AIPI" class="headerlink" title="基本AIPI"></a>基本AIPI</h2><p><strong>channel.exchangeDeclare()</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">type：有direct、fanout、topic三种</span><br><span class="line">durable：true：服务器重启会保留下来Exchange。警告：仅设置此选项，不代表消息持久化。即不保证重启后消息还在。</span><br><span class="line">autoDelete: true:当已经没有消费者时，服务器是否可以删除该Exchange。</span><br></pre></td></tr></table></figure>
+
+<p><strong>chanel.exchangeBind()</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);</span><br><span class="line">用于通过绑定bindingKey将queue到Exchange，之后便可以进行消息接收</span><br></pre></td></tr></table></figure>
+
+<p><strong>channel.queueDeclare(QUEUE_NAME, false, false, false, null);</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">durable：true：在服务器重启时，能够存活</span><br><span class="line">exclusive ：是否为当前连接的专用队列，在连接断开后，会自动删除该队列，生产环境中应该很少用到吧。</span><br><span class="line">autodelete：当没有任何消费者使用时，自动删除该队列。this means that the queue will be deleted when there are no more processes consuming messages from it.</span><br></pre></td></tr></table></figure>
+<p><strong>chanel.basicQos()</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">prefetchSize：0 目前好像没有作用，至少rabbitmq3.8.5不能使用，报错</span><br><span class="line">prefetchCount：会告诉RabbitMQ不要同时给一个消费者推送多于N个消息，即一旦有N个消息还没有ack，则该consumer将block掉，直到有消息ack。是服务端属性，通过rpc方法调用，存在服务端，客户端不需要使用</span><br><span class="line">global：true\false 是否将上面设置应用于channel，简单点说，就是上面限制是channel级别的还是consumer级别。如果true并且prefetchCount为4，有二个消费者，此时每个消费者可以读取到二条。如果为fasle，每个消费者获取到4条数据</span><br></pre></td></tr></table></figure>
+<p><strong>channel.basicPublish()</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">routingKey：路由键，#匹配0个或多个单词，*匹配一个单词，在topic exchange做消息转发用</span><br><span class="line">mandatory：true：如果exchange根据自身类型和消息routeKey无法找到一个符合条件的queue，那么会调用basic.return方法将消息返还给生产者。false：出现上述情形broker会直接将消息扔掉</span><br><span class="line">immediate：true：如果exchange在将消息route到queue(s)时发现对应的queue上没有消费者，那么这条消息不会放入队列中。当与消息routeKey关联的所有queue(一个或多个)都没有消费者时，该消息会通过basic.return方法返还给生产者。</span><br><span class="line">BasicProperties ：需要注意的是BasicProperties.deliveryMode，0:不持久化 1：持久化 这里指的是消息的持久化，配合channel(durable&#x3D;true),queue(durable)可以实现，即使服务器宕机，消息仍然保留</span><br><span class="line">简单来说：mandatory标志告诉服务器至少将该消息route到一个队列中，否则将消息返还给生产者；immediate标志告诉服务器如果该消息关联的queue上有消费者，则马上将消息投递给它，如果所有queue都没有消费者，直接把消息返还给生产者，不用将消息入队列等待消费者了。</span><br></pre></td></tr></table></figure>
+
+<p><strong>channel.basicAck();</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">deliveryTag:该消息的index</span><br><span class="line">multiple：是否批量.true:将一次性ack所有小于deliveryTag的消息。</span><br></pre></td></tr></table></figure>
+
+<p><strong>channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, true);</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">deliveryTag:该消息的index</span><br><span class="line">multiple：是否批量.true:将一次性拒绝所有小于deliveryTag的消息。</span><br><span class="line">requeue：被拒绝的是否重新入队列</span><br></pre></td></tr></table></figure>
+
+<p><strong>channel.basicReject(delivery.getEnvelope().getDeliveryTag(), false);</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">deliveryTag:该消息的index</span><br><span class="line">requeue：被拒绝的是否重新入队列</span><br><span class="line">channel.basicNack 与 channel.basicReject 的区别在于basicNack可以拒绝多条消息，而basicReject一次只能拒绝一条消息</span><br></pre></td></tr></table></figure>
+<p><strong>channel.basicConsume(QUEUE_NAME, true, consumer);</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">autoAck：是否自动ack，如果不自动ack，需要使用channel.ack、channel.nack、channel.basicReject 进行消息应答</span><br></pre></td></tr></table></figure>
+
+<p><strong>channel.basicGet(ConnectionUtils.QUEUE_NAME, false);</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">autoAck：是否自动ack，如果不自动ack，需要使用channel.ack、channel.nack、channel.basicReject 进行消息应答</span><br></pre></td></tr></table></figure>
+
+<h2 id="注意点"><a href="#注意点" class="headerlink" title="注意点"></a>注意点</h2><p><strong>Connection与Channel</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Channel channel = connection.createChannel();</span><br></pre></td></tr></table></figure>
+
+<p>一个连接可以创建多个Channel</p>
+<p><strong>Channel与消费者Consume</strong></p>
+<p>一个Channel上可以设置多个Consume,因此可以设置最大值，Spring中通过设置concurrency和max-concurrency配置消费者个数</p>
+<p><strong>prefetchSize、prefetchCount、Global</strong></p>
+<p>spring中有prefetch即prefetchCount，batch-size。取最大值设置为prefetchCount</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">LinkedBlockingQueue</span><br><span class="line"><span class="keyword">this</span>.channel.basicQos(<span class="keyword">this</span>.prefetchCount);</span><br><span class="line">InternalConsumer consumer = <span class="keyword">new</span> InternalConsumer(<span class="keyword">this</span>.channel, queue);</span><br><span class="line">String consumerTag = <span class="keyword">this</span>.channel.basicConsume(queue, <span class="keyword">this</span>.acknowledgeMode.isAutoAck(),</span><br><span class="line">                                               (<span class="keyword">this</span>.tagStrategy != <span class="keyword">null</span> ? <span class="keyword">this</span>.tagStrategy.createConsumerTag(queue) : <span class="string">&quot;&quot;</span>), <span class="keyword">this</span>.noLocal,</span><br><span class="line">                                               <span class="keyword">this</span>.exclusive, <span class="keyword">this</span>.consumerArgs,</span><br><span class="line">                                               consumer);</span><br></pre></td></tr></table></figure>
+
+<h2 id="原理图"><a href="#原理图" class="headerlink" title="原理图"></a>原理图</h2><p><img src="/2020/11/27/RabbitMQ%E5%9F%BA%E7%A1%80/%E5%8E%9F%E7%90%86%E5%9B%BE.png"></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/25/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%89%EF%BC%89%E4%B9%8B%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%80%BB%E7%AB%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/11/25/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%89%EF%BC%89%E4%B9%8B%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%80%BB%E7%AB%A0/" class="post-title-link" itemprop="url">算法（三）之数据结构总章</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-11-25 18:09:52" itemprop="dateCreated datePublished" datetime="2020-11-25T18:09:52+08:00">2020-11-25</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-04 10:16:19" itemprop="dateModified" datetime="2020-12-04T10:16:19+08:00">2020-12-04</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><ul>
+<li><p>数组（数组、循环数组）查找、更新可以通过下标，时间复杂度为O(1);插入、删除需要移动数据在数组的位置O(n)</p>
+<p><strong>基本操作</strong>：读取元素，更新元素，插入元素，删除元素（涉及数组元素移动位置，取巧方式：将最后一个元素更新删除元素）</p>
+</li>
+<li><p>链表（单向链表、双向链表、循环链表）查找需要一直向下查找，时间复杂度为O(n);插入、删除、更新指针变动即可O(1)</p>
+<p><strong>基本操作</strong>：查找节点，更新节点，插入节点，删除节点</p>
+<p><img src="/2020/11/25/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%89%EF%BC%89%E4%B9%8B%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%80%BB%E7%AB%A0/image-20201201102615715.png" alt="image-20201201102615715"></p>
+</li>
+<li><p>栈（Stack）：FILO（First In Last Out，先入后出），最早进入的元素存放的位置叫作栈底（bottom），最后进入的元素存放的位置叫作栈顶（top）。可以使用数组或链表来实现。时间复杂度都是O(1)</p>
+<p><strong>基本操作</strong>：入栈push（从栈顶压入元素），出栈pop（从栈顶弹出元素）</p>
+</li>
+<li><p>队列（queue，单向队列，双端队列，优先队列，堵塞队列）：FIFO（First In First Out，先进先出），队列的出口端叫作队头（front），队列的入口端叫作队尾（rear）。可以使用数组或链表来实现。时间复杂度都是O(1)。数组实现队列会导致空间越来越小，可以使用循环数组。</p>
+<p><strong>基本操作</strong>：入队enqueue（从队尾插入元素），出队dequeue（从对头移出元素）</p>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>作用及示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>栈的应用</td>
+<td>栈的输出顺序和输入顺序相反，所以栈通常用于对“历史”的回溯，也就是逆流而上追溯“历史”。<br>例如实现递归的逻辑，就可以用栈来代替，因为栈可以回溯方法的调用链。<br>栈还有一个著名的应用场景是面包屑导航，使用户在浏览页面时可以轻松地回溯到上一级或更上一级页面。</td>
+</tr>
+<tr>
+<td>队列的应用</td>
+<td>队列的输出顺序和输入顺序相同，所以队列通常用于对“历史”的回放，也就是按照“历史”顺序，把“历史”重演一遍。<br>例如在多线程中，争夺公平锁的等待队列，就是按照访问顺序来决定线程在队列中的次序的。<br>再如网络爬虫实现网站抓取时，也是把待抓取的网站URL存入队列中，再按照存入队列的顺序来依次抓取和解析的</td>
+</tr>
+</tbody></table>
+<p><font color="red"><strong>双端队列（deque）</strong></font>：既可以先入先出，也可以先入后出。从队头一端可以入队或出队，从队尾一端也可以入队或出队</p>
+<p><font color="red"><strong>优先队列</strong></font>：它遵循的不是先入先出，而是谁的优先级最高，谁先出队。优先队列已经<strong>不属于线性数据结构的范畴</strong>了，它是<strong>基于二叉堆来实现的</strong></p>
+</li>
+<li><p>散列表：也叫哈希表（Hash table），提供了键（Key）和值（Value）的映射关系,只要给出一个Key，就可以高效查找到它所匹配的Value，时间复杂度接近于O(1)。<font color="red">散列表可以说是数组和链表的结合。</font></p>
+<p><strong>基本操作</strong>：写操作put,读操作get,扩容resize</p>
+<p><strong>哈希冲突（哈希碰撞）</strong>解决方法：</p>
+<p>​        <strong>开放寻址法</strong>：当一个Key通过哈希函数获得对应的数组下标已被占用时，我们可以“另谋高就”，寻找下一个空档位置，一直向下找。在Java中，ThreadLocal所使用的就是开放寻址法</p>
+<p>​        <strong>链表法</strong>：应用在了Java的集合类HashMap当中，数组的每一个元素不仅是一个Entry对象，还是一个链表的头节点。每一个Entry对象通过next指针指向它的下一个Entry节点。当新来的Entry映射到与之冲突的数组位置时，只需要插入到对应的链表中即可</p>
+</li>
+<li><p>树（tree,二叉树、二叉查找树（排序树）、平衡二叉树、红黑树、B-树、B+树）是n（n≥0）个节点的有限集。当n=0时，称为空树。</p>
+<p>树–&gt;二叉树–&gt;完全二叉树–&gt;满二叉树–&gt;二叉堆–&gt;二叉查找树（排序树）</p>
+</li>
+<li><p>图（？）</p>
+</li>
+</ul>
+<h2 id="java数据结构"><a href="#java数据结构" class="headerlink" title="java数据结构"></a>java数据结构</h2><p>见java集合文章</p>
+<h2 id="什么是数组"><a href="#什么是数组" class="headerlink" title="什么是数组"></a>什么是数组</h2><p>数组是由有限个相同类型的变量所组成的有序集合，它的物理存储方式是顺序 存储，访问方式是随机访问。利用下标查找数组元素的时间复杂度是O(1)，中间插入、删除数组元素的时间复杂度是O(n)。 </p>
+<h2 id="什么是链表"><a href="#什么是链表" class="headerlink" title="什么是链表"></a>什么是链表</h2><p>链表是一种链式数据结构，由若干节点组成，每个节点包含指向下一节点的指针。链表的物理存储方式是随机存储，访问方式是顺序访问。查找链表节点的时间 复杂度是O(n)，中间插入、删除节点的时间复杂度是O(1)。 </p>
+<h2 id="什么是栈"><a href="#什么是栈" class="headerlink" title="什么是栈"></a>什么是栈</h2><p>栈是一种线性逻辑结构，可以用数组实现，也可以用链表实现。栈包含入栈和 出栈操作，遵循先入后出的原则（FILO）。 </p>
+<h2 id="什么是队列"><a href="#什么是队列" class="headerlink" title="什么是队列"></a>什么是队列</h2><p>队列也是一种线性逻辑结构，可以用数组实现，也可以用链表实现。队列包含入队和出队操作，遵循先入先出的原则（FIFO）。 </p>
+<h2 id="什么是散列表"><a href="#什么是散列表" class="headerlink" title="什么是散列表"></a>什么是散列表</h2><p>散列表也叫哈希表，是存储Key-Value映射的集合。对于某一个Key，散列表可以在接近O(1)的时间内进行读写操作。散列表通过哈希函数实现Key和数组下标的转换，通过开放寻址法和链表法来解决哈希冲突</p>
+<h2 id="什么是树"><a href="#什么是树" class="headerlink" title="什么是树"></a>什么是树</h2><p>树是n个节点的有限集，有且仅有一个特定的称为根的节点。当n&gt;1时，其余节点可分为m个互不相交的有限集，每一个集合本身又是一个树，并称为根的子树。 </p>
+<h2 id="什么是二叉树"><a href="#什么是二叉树" class="headerlink" title="什么是二叉树"></a>什么是二叉树</h2><p>二叉树是树的一种特殊形式，每一个节点最多有两个孩子节点。二叉树包含完全二叉树和满二叉树两种特殊形式。 </p>
+<h2 id="二叉树的遍历方式有几种"><a href="#二叉树的遍历方式有几种" class="headerlink" title="二叉树的遍历方式有几种"></a>二叉树的遍历方式有几种</h2><p>根据遍历节点之间的关系，可以分为前序遍历、中序遍历、后序遍历、层序遍历这4种方式；从更宏观的角度划分，可以划分为深度优先遍历和广度优先遍历两大类。</p>
+<h2 id="什么是二叉堆"><a href="#什么是二叉堆" class="headerlink" title="什么是二叉堆"></a>什么是二叉堆</h2><p>二叉堆是一种特殊的完全二叉树，分为最大堆和最小堆。<br>在最大堆中，任何一个父节点的值，都大于或等于它左、右孩子节点的值。<br>在最小堆中，任何一个父节点的值，都小于或等于它左、右孩子节点的值。 </p>
+<h2 id="什么是优先队列"><a href="#什么是优先队列" class="headerlink" title="什么是优先队列"></a>什么是优先队列</h2><p>优先队列分为最大优先队列和最小优先队列。<br>在最大优先队列中，无论入队顺序如何，当前最大的元素都会优先出队，这是基于最大堆实现的。<br>在最小优先队列中，无论入队顺序如何，当前最小的元素都会优先出队，这是基于最小堆实现的。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
     
 
 
@@ -352,890 +1606,6 @@
 <p><img src="/2020/11/24/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%8C%EF%BC%89/20190121211350180.png" alt="img"></p>
 <h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_39385118/article/details/80835048">数据结构之逻辑结构与物理结构（存储结构）</a></p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41523096/article/details/86566982">《数据结构》| 第一章 绪论 知识梳理</a></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/23/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%80%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/23/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%80%EF%BC%89/" class="post-title-link" itemprop="url">算法（一）</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-11-23 13:36:25" itemprop="dateCreated datePublished" datetime="2020-11-23T13:36:25+08:00">2020-11-23</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-11-25 10:17:42" itemprop="dateModified" datetime="2020-11-25T10:17:42+08:00">2020-11-25</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="算法"><a href="#算法" class="headerlink" title="算法"></a>算法</h2><ul>
-<li>在数学领域里，算法是用于解决某一类问题的公式和思想。</li>
-<li>在计算机科学领域，算法的本质是一系列程序指令，用于解决特定的运算和逻辑问题。是对特定问题求解方法（步骤）的一种描述，是指令的有限序列，其中每一条指令表示一个或多个操作。</li>
-</ul>
-<h2 id="算法特性"><a href="#算法特性" class="headerlink" title="算法特性"></a>算法特性</h2><p><img src="/2020/11/23/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%80%EF%BC%89/image-20201125100745940.png" alt="image-20201125100745940"></p>
-<h2 id="算法的设计目标"><a href="#算法的设计目标" class="headerlink" title="算法的设计目标"></a>算法的设计目标</h2><p><img src="/2020/11/23/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%80%EF%BC%89/image-20201125101019149.png" alt="image-20201125101019149"></p>
-<h2 id="算法标准"><a href="#算法标准" class="headerlink" title="算法标准"></a>算法标准</h2><p>在计算机领域，我们同样会遇到各种高效和拙劣的算法。衡量算法好坏的重要标准有两个。 </p>
-<ul>
-<li>时间复杂度</li>
-<li>空间复杂度</li>
-</ul>
-<h2 id="算法的应用领域"><a href="#算法的应用领域" class="headerlink" title="算法的应用领域"></a>算法的应用领域</h2><p>算法可以应用在很多不同的领域中，其应用场景更是多种多样。</p>
-<ul>
-<li>运算（如最大公约数）</li>
-<li>查找（搜索引擎，Mysql查询）</li>
-<li>排序（电商商品排序，排名）。排序算法是实现诸多复杂程序的基石</li>
-<li>最优决策（如找出最佳路线，有限背包存价值最高物品使用动态规划算法）</li>
-<li>面试（主要时为了它，不然学它干嘛）</li>
-</ul>
-<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>数据结构，对应的英文单词是data structure，是数据的组织、管理和存储格式， 其使用目的是为了高效地访问和修改数据。</p>
-<h2 id="数据结构组成方式"><a href="#数据结构组成方式" class="headerlink" title="数据结构组成方式"></a>数据结构组成方式</h2><ul>
-<li>线性结构（最简单的数据结构，包含数组，链表及由它们衍生的栈、队列、哈希表）</li>
-<li>树（树是相对复杂的数据结构，其中比较有代表性的是二叉树，由它又衍生出了二叉堆之类的数据结构）</li>
-<li>图（图是更为复杂的数据结构，因为在图中会呈现出多对多的关联关系）</li>
-<li>其他数据结构（除上述基本数据结构外，还有其它千奇百怪的数据结构。由基本数据结构变形而来，用于解决某些特定问题，如跳表、哈希链表、位图等）</li>
-</ul>
-<h2 id="数据结构和算法"><a href="#数据结构和算法" class="headerlink" title="数据结构和算法"></a>数据结构和算法</h2><p>有了数据结构这个舞台，算法才可以尽情舞蹈。在解决问题时，不同的算法会选用不同的数据结构。例如排序算法中的堆排序，利用的就是二叉堆这样一种数据结构；再如缓存淘汰算法LRU（Least Recently Used，最近最少使用），利用的就是特殊数据结构哈希链表。</p>
-<h2 id="时间复杂度"><a href="#时间复杂度" class="headerlink" title="时间复杂度"></a>时间复杂度</h2><p>基本操作执行次数的函数T(n),若存在函数f(n)，使得当n趋近于无穷大时，T(n)/f(n)的极限值为不等于零的常数，则称f(n)是T(n)的同数量级函数。记作T(n)=O(f(n))，称为O(f(n))，O为算法的渐进时间复杂度，简称为时间复杂度。 <font color="red">因为渐进时间复杂度用大写O来表示，所以也被称为大O表示法。</font> </p>
-<p>直白地讲，时间复杂度就是把程序的相对执行时间函数T(n)简化为一个数量级，这个数量级可以是n、n2、n3等。</p>
-<p>时间复杂度是对一个算法运行时间长短的量度，用大O表示，记作T(n)=O(f(n))。</p>
-<p><img src="/2020/11/23/%E7%AE%97%E6%B3%95%EF%BC%88%E4%B8%80%EF%BC%89/image-20201125101210140.png" alt="image-20201125101210140"></p>
-<h2 id="推导出时间复杂度原则"><a href="#推导出时间复杂度原则" class="headerlink" title="推导出时间复杂度原则"></a>推导出时间复杂度原则</h2><ul>
-<li><p>如果运行时间是常数量级，则用常数1表示 </p>
-</li>
-<li><p>只保留时间函数中的最高阶项 </p>
-</li>
-<li><p>如果最高阶项存在，则省去最高阶项前面的系数</p>
-</li>
-</ul>
-<h2 id="不同时间复杂度"><a href="#不同时间复杂度" class="headerlink" title="不同时间复杂度"></a>不同时间复杂度</h2><ul>
-<li><p>多项式时间算法的时间复杂度：O(1)&lt;O(log<del>2</del>n)&lt;O(n)&lt;O(nlog<del>2</del>n)&lt;O(n^2^) &lt;O(n^3^)</p>
-</li>
-<li><p>指数时间算法的时间复杂度：O(2^n^)&lt;O(n!)&lt;O(n^n^)</p>
-</li>
-</ul>
-<h2 id="空间复杂度"><a href="#空间复杂度" class="headerlink" title="空间复杂度"></a>空间复杂度</h2><p>空间复杂度是对一个算法在运行过程中<font color="red"><strong>临时占用存储空间大小的量度</strong></font>，它同样使用了大O表示法。程序占用空间大小的计算公式记作S(n)=O(f(n))，其中n为问题的规模，f(n)为算法所占存储空间的函数。 <font color="red">空间复杂度就离不开数据结构。</font></p>
-<h2 id="不同空间复杂度"><a href="#不同空间复杂度" class="headerlink" title="不同空间复杂度"></a>不同空间复杂度</h2><ul>
-<li><p>常量空间（当算法的存储空间大小固定，和输入规模没有直接的关系时，空间复杂度记作O(1)）</p>
-</li>
-<li><p>线性空间（当算法分配的空间是一个线性的集合（如数组），并且集合大小和输入规模n成正比时，空间复杂度记作O(n)）</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">fun1</span><span class="params">(<span class="keyword">int</span> n)</span></span>&#123;<span class="keyword">int</span>[] array = <span class="keyword">new</span> <span class="keyword">int</span>[n];&#125;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>二维空间（当算法分配的空间是一个二维数组集合，并且集合的长度和宽度都与输入规模n成正比时，空间复杂度记作O(n^2^)）</p>
-</li>
-<li><p>递归空间（递归是一个比较特殊的场景。虽然递归代码中并没有显式地声明变量或集合，但是计算机在执行程序时，会专门分配一块内存，用来存储“方法调用栈”。空间复杂度就是O(n)）</p>
-</li>
-</ul>
-<h2 id="时间与空间的取舍"><a href="#时间与空间的取舍" class="headerlink" title="时间与空间的取舍"></a>时间与空间的取舍</h2><p>在绝大多数时候，时间复杂度更为重要一些，我们宁可多分配一些内存空间，也要提升程序的执行速度。</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/23/DataSource%E4%BB%8B%E7%BB%8D%E5%8F%8A%E5%AF%B9%E6%AF%94/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/23/DataSource%E4%BB%8B%E7%BB%8D%E5%8F%8A%E5%AF%B9%E6%AF%94/" class="post-title-link" itemprop="url">DataSource介绍及对比</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-23 09:46:35 / Modified: 10:09:28" itemprop="dateCreated datePublished" datetime="2020-11-23T09:46:35+08:00">2020-11-23</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/JDBC/" itemprop="url" rel="index"><span itemprop="name">JDBC</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="DriverManager"><a href="#DriverManager" class="headerlink" title="DriverManager"></a>DriverManager</h2><p>DriverManager通过getConnection方法获取的连接，<font color="red">是建立与数据库的连接</font>。但是建立与数据库的连接是一项较耗资源的工作，频繁的进行数据库连接建立操作会产生较大的系统开销。</p>
-<p>随着企业级应用复杂度的提升以及对性能要求的提高，这一点是难以接受的。</p>
-<h2 id="连接池"><a href="#连接池" class="headerlink" title="连接池"></a>连接池</h2><p><strong>既然每次使用时都重新建立与数据库之间的连接，会产生较大的系统开销。是否可以事先创建一些连接备用，当需要时，从这些连接中选择一个提供出去；当连接使用完毕后，并不是真正的关闭，而是将这些数据状态还原，然后继续等待下一个人使用</strong></p>
-<h2 id="数据源"><a href="#数据源" class="headerlink" title="数据源"></a>数据源</h2><p>DriverManager只是建立与数据库之间的连接，如何才能将连接池的概念应用其中？</p>
-<p><strong>一种很自然的方式就是提供一个薄层的封装，建立一个中间层，这个中间层将DriverManager生成的连接，组织到连接池中，然后从池中提供连接</strong></p>
-<p><img src="/2020/11/23/DataSource%E4%BB%8B%E7%BB%8D%E5%8F%8A%E5%AF%B9%E6%AF%94/897393-20190125140250476-31357459.png" alt="img"></p>
-<p><strong>Data Source就是DriverManager的一种替代角色，对外呈现就类似于一个DriverManager，拥有对外提供连接的能力</strong></p>
-<p>直接使用DriverManager，驱动程序与管理器是“服务者—管理者”的形式，借助于管理者才能提供服务。</p>
-<p>Data Source将驱动程序的概念淡化了，突出驱动程序能够提供的服务与能力，将驱动程序提供的服务与能力抽象为Data Source数据源这一角色。</p>
-<p><img src="/2020/11/23/DataSource%E4%BB%8B%E7%BB%8D%E5%8F%8A%E5%AF%B9%E6%AF%94/897393-20190125140251236-665240055.png" alt="img"></p>
-<p><strong>DataSource中获取的连接来自于连接池中，而池中的连接根本也还是从DriverManager获取而来</strong></p>
-<p>有了数据源这一中间层，就可以实现连接池和分布式事务的管理。</p>
-<p><strong>对外呈现DataSource就是类似于DriverManager的一个存在。</strong></p>
-<p><strong>DataSource的形式是JNDI （Java Naming Directory Interface）</strong></p>
-<p>DataSource是JNDI资源的一种，那么到底什么是JNDI呢</p>
-<p>此处不过多解释，可以简单认为JNDI是类似这样一个东西：</p>
-<p>一个哈希表，类型为&lt;String，Object&gt;</p>
-<p>JNDI的两个最主要操作：bind和lookup。bind操作负责往哈希表里存对象，lookup则根据这个键值字符串往外取对象。</p>
-<p>开发人员可以使用键值——也就是一个字符串名称——来获取某个对象。</p>
-<p><strong>简言之就是可以给一个对象命名，然后可以通过名称找到这个对象。</strong></p>
-<p><strong>数据源的概念在应用程序与数据库连接之间插入了一个中间层，进而可以实现连接池以及事务管理，并且以JNDI的形式，也能够以非常方便的形式使用。</strong></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/20/JDBC%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/20/JDBC%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">JDBC原理分析</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-11-20 11:16:41" itemprop="dateCreated datePublished" datetime="2020-11-20T11:16:41+08:00">2020-11-20</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-11-23 09:46:00" itemprop="dateModified" datetime="2020-11-23T09:46:00+08:00">2020-11-23</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/JDBC/" itemprop="url" rel="index"><span itemprop="name">JDBC</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><p>JDBC（Java Database Connection）,java提供的一套操作数据库的api。</p>
-<h2 id="组成"><a href="#组成" class="headerlink" title="组成"></a>组成</h2><p><strong>java.sql包主要接口</strong></p>
-<ul>
-<li>DriverManager ：驱动管理，可以加载驱动，获取Connection（通过Driver），高版本自动加载驱动Driver</li>
-<li>Driver ：获取Connection</li>
-<li>Connection: 创建Statement </li>
-<li>Statement: Statement为一条Sql语句生成执行计划</li>
-<li>PreparedStatement: 预编译sql语句，更安全，字符串参数会自动被驱动器忽略；PreparedStatement用于使用绑定变量重用执行计划，对于批量处理可以大大提高效率，但是如果是一次性存取操作性能开销更大。</li>
-<li>ResultSet：Statement调用执行方法返回的结果</li>
-<li><font color="red">Warapper</font>: 重点，<strong>适配器类</strong>，提供的扩展接口，方法unwrap返回未适配的对象， 方法isWrapperFor返回是否适配 。Connetion，Statement，ResultSet都继承Warapper接口。把一个由第三方供应商提供的、非 JDBC 标准的接口包装成标准接口</li>
-</ul>
-<p><strong>javax.sql包主要接口</strong></p>
-<ul>
-<li>DataSource：基本数据源接口，返回普通Connection</li>
-<li>ConnectionPoolDataSource：连接池数据源接口，返回连接池连接（PooledConnection）</li>
-<li>XADataSource：XA事务数据源，分布式事务，返回XA事务连接池连接（XAConnection 继承PooledConnection）</li>
-<li>PooledConnection：连接池连接</li>
-<li>XAConnection：XA事务连接池连接</li>
-<li>RowSet：继承ResultSet</li>
-<li>RowSetEvent，RowSetListener</li>
-<li>StatementEvent,StatementEventListener</li>
-<li>ConnectionEvent,ConnectionEventListener</li>
-</ul>
-<h2 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Class.forName(<span class="string">&quot;com.mysql.jdbc.Driver&quot;</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;Driver loaded&quot;</span>);</span><br><span class="line">        Connection connection = DriverManager.getConnection(</span><br><span class="line">                <span class="string">&quot;jdbc:mysql://localhost/javabook&quot;</span>, <span class="string">&quot;root&quot;</span>, <span class="string">&quot;root&quot;</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;Databases connected&quot;</span>);</span><br><span class="line">        PreparedStatement preparedStatement = connection.prepareStatement(</span><br><span class="line">                <span class="string">&quot;select ?, ?, ? from Student where lastName = ?&quot;</span>);</span><br><span class="line">        preparedStatement.setString(<span class="number">1</span>, <span class="string">&quot;firstName&quot;</span>);</span><br><span class="line">        preparedStatement.setString(<span class="number">2</span>, <span class="string">&quot;mi&quot;</span>);</span><br><span class="line">        preparedStatement.setString(<span class="number">3</span>, <span class="string">&quot;lastName&quot;</span>);</span><br><span class="line">        preparedStatement.setString(<span class="number">4</span>, <span class="string">&quot;Smith&quot;</span>);</span><br><span class="line">        ResultSet resultSet = preparedStatement.executeQuery();</span><br><span class="line">        <span class="keyword">while</span> (resultSet.next()) &#123;</span><br><span class="line">            System.out.println(resultSet.getString(<span class="number">1</span>) + <span class="string">&quot;\t&quot;</span> +</span><br><span class="line">                    resultSet.getString(<span class="number">2</span>) + <span class="string">&quot;\t&quot;</span> + resultSet.getString(<span class="number">3</span>));</span><br><span class="line">        &#125;</span><br><span class="line">        connection.close();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/19/java%E8%8E%B7%E5%8F%96ip%E5%9C%B0%E5%9D%80/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/19/java%E8%8E%B7%E5%8F%96ip%E5%9C%B0%E5%9D%80/" class="post-title-link" itemprop="url">java获取ip地址</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-11-19 13:15:21" itemprop="dateCreated datePublished" datetime="2020-11-19T13:15:21+08:00">2020-11-19</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-11-26 18:34:38" itemprop="dateModified" datetime="2020-11-26T18:34:38+08:00">2020-11-26</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/java%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">java基础</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="获取服务器本地ip"><a href="#获取服务器本地ip" class="headerlink" title="获取服务器本地ip"></a>获取服务器本地ip</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> String <span class="title">getHostAddress</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String hostAddress = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      InetAddress address = InetAddress.getLocalHost();</span><br><span class="line">      hostAddress = address.getHostAddress();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (UnknownHostException e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> hostAddress;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">getIpAddress</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Enumeration&lt;NetworkInterface&gt; allNetInterfaces = NetworkInterface.getNetworkInterfaces();</span><br><span class="line">      InetAddress ip = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">while</span> (allNetInterfaces.hasMoreElements()) &#123;</span><br><span class="line">        NetworkInterface netInterface = allNetInterfaces.nextElement();</span><br><span class="line">        <span class="keyword">if</span> (netInterface.isLoopback() || netInterface.isVirtual() || !netInterface.isUp()) &#123;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Enumeration&lt;InetAddress&gt; addresses = netInterface.getInetAddresses();</span><br><span class="line">        <span class="keyword">while</span> (addresses.hasMoreElements()) &#123;</span><br><span class="line">          ip = addresses.nextElement();</span><br><span class="line">          <span class="keyword">if</span> (ip != <span class="keyword">null</span> &amp;&amp; ip <span class="keyword">instanceof</span> Inet4Address) &#123;</span><br><span class="line">            <span class="keyword">return</span> ip.getHostAddress();</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      System.err.println(<span class="string">&quot;IP地址获取失败&quot;</span> + e.toString());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="获取http请求的ip地址"><a href="#获取http请求的ip地址" class="headerlink" title="获取http请求的ip地址"></a>获取http请求的ip地址</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getIpAddr</span><span class="params">(HttpServletRequest request)</span> </span>&#123;</span><br><span class="line">    String ipAddress = request.getHeader(<span class="string">&quot;x-forwarded-for&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (ipAddress == <span class="keyword">null</span> || ipAddress.length() == <span class="number">0</span> || <span class="string">&quot;unknown&quot;</span>.equalsIgnoreCase(ipAddress)) &#123;</span><br><span class="line">      ipAddress = request.getHeader(<span class="string">&quot;Proxy-Client-IP&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (ipAddress == <span class="keyword">null</span> || ipAddress.length() == <span class="number">0</span> || <span class="string">&quot;unknown&quot;</span>.equalsIgnoreCase(ipAddress)) &#123;</span><br><span class="line">      ipAddress = request.getHeader(<span class="string">&quot;WL-Proxy-Client-IP&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (ipAddress == <span class="keyword">null</span> || ipAddress.length() == <span class="number">0</span> || <span class="string">&quot;unknown&quot;</span>.equalsIgnoreCase(ipAddress)) &#123;</span><br><span class="line">      ipAddress = request.getRemoteAddr();</span><br><span class="line">      <span class="keyword">if</span> (ipAddress.equals(<span class="string">&quot;127.0.0.1&quot;</span>) || ipAddress.equals(<span class="string">&quot;0:0:0:0:0:0:0:1&quot;</span>)) &#123;</span><br><span class="line">        <span class="comment">//根据网卡取本机配置的IP</span></span><br><span class="line">        InetAddress inet = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          inet = InetAddress.getLocalHost();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (UnknownHostException e) &#123;</span><br><span class="line">          e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        ipAddress = inet.getHostAddress();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//对于通过多个代理的情况，第一个IP为客户端真实IP,多个IP按照&#x27;,&#x27;分割</span></span><br><span class="line">    <span class="keyword">if</span> (ipAddress != <span class="keyword">null</span> &amp;&amp; ipAddress.length() &gt; <span class="number">15</span>) &#123; <span class="comment">//&quot;***.***.***.***&quot;.length() = 15</span></span><br><span class="line">      <span class="keyword">if</span> (ipAddress.indexOf(<span class="string">&quot;,&quot;</span>) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        ipAddress = ipAddress.substring(<span class="number">0</span>, ipAddress.indexOf(<span class="string">&quot;,&quot;</span>));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ipAddress;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/19/Ribbon%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B4%9F%E8%BD%BD%E8%A7%84%E5%88%99/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/19/Ribbon%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B4%9F%E8%BD%BD%E8%A7%84%E5%88%99/" class="post-title-link" itemprop="url">Ribbon自定义负载规则</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-11-19 11:33:46" itemprop="dateCreated datePublished" datetime="2020-11-19T11:33:46+08:00">2020-11-19</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-12-11 10:11:10" itemprop="dateModified" datetime="2020-12-11T10:11:10+08:00">2020-12-11</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">微服务</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="配置Ribbon，指定每个服务使用的配置"><a href="#配置Ribbon，指定每个服务使用的配置" class="headerlink" title="配置Ribbon，指定每个服务使用的配置"></a>配置Ribbon，指定每个服务使用的配置</h2><p>java注解方式配置</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RibbonClients(value = &#123;</span></span><br><span class="line"><span class="meta">    @RibbonClient(name = &quot;order-service&quot;,configuration = RibbonLoadbalancerConfiguration.class)</span></span><br><span class="line"><span class="meta">&#125;</span></span><br><span class="line"><span class="meta">,defaultConfiguration = RibbonLoadbalancerConfiguration.class)</span></span><br></pre></td></tr></table></figure>
-
-<p>也可以使用配置文件，相比java配置，优先级更高</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">order-service:</span> <span class="comment">#指定服务配置</span></span><br><span class="line">  <span class="attr">ribbon:</span></span><br><span class="line">    <span class="attr">NIWSServerListClass:</span> <span class="string">com.netflix.loadbalancer.ConfigurationBasedServerList</span> <span class="comment">#指定ServerList的实现类</span></span><br><span class="line">    <span class="attr">NFLoadBalancerRuleClassName:</span> <span class="string">com.netflix.loadbalancer.RandomRule</span> <span class="comment">#指定IRule的实现类</span></span><br><span class="line"><span class="attr">ribbon:</span> <span class="comment">#全局配置</span></span><br><span class="line">	<span class="attr">NFLoadBalancerRuleClassName:</span> <span class="string">RibbonLoadbalancerConfiguration</span> <span class="comment">#指定IRule的实现类</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="配置规则"><a href="#配置规则" class="headerlink" title="配置规则"></a>配置规则</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">NativeRibbonRule</span> <span class="keyword">extends</span> <span class="title">AbstractLoadBalancerRule</span> </span>&#123;</span><br><span class="line">      <span class="meta">@Override</span></span><br><span class="line">      <span class="function"><span class="keyword">public</span> Server <span class="title">choose</span><span class="params">(Object o)</span> </span>&#123;</span><br><span class="line">        ILoadBalancer lb = getLoadBalancer();</span><br><span class="line">        <span class="comment">// 获取所有的服务</span></span><br><span class="line">        List&lt;Server&gt; servers = lb.getAllServers();</span><br><span class="line">        servers.forEach(server -&gt; logger.info(<span class="string">&quot;服务器端口号：&#123;&#125;&quot;</span>,server.getHostPort()));</span><br><span class="line">        String host = getIpAddress(); <span class="comment">//本机ip</span></span><br><span class="line">        <span class="keyword">return</span> servers.stream().filter(server -&gt; &#123;</span><br><span class="line">          <span class="keyword">return</span> server.getHost().equals(host);</span><br><span class="line">        &#125;).findFirst().orElse(<span class="keyword">null</span>);</span><br><span class="line">      &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/19/typora%E9%AB%98%E4%BA%AE%E5%8F%8A%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AE%BE%E7%BD%AE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/19/typora%E9%AB%98%E4%BA%AE%E5%8F%8A%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AE%BE%E7%BD%AE/" class="post-title-link" itemprop="url">typora高亮及快捷键设置</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-19 10:35:51 / Modified: 10:37:03" itemprop="dateCreated datePublished" datetime="2020-11-19T10:35:51+08:00">2020-11-19</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/markdown/" itemprop="url" rel="index"><span itemprop="name">markdown</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="1、Typora的高亮模式默认是关闭的（需手动打开）"><a href="#1、Typora的高亮模式默认是关闭的（需手动打开）" class="headerlink" title="1、Typora的高亮模式默认是关闭的（需手动打开）"></a>1、Typora的高亮模式默认是关闭的（需手动打开）</h2><p>打开方式：文件 &gt; 偏好设置 &gt; Markdown &gt; Markdown扩展语法中把 <strong>高亮</strong> 选中 &gt; <strong>重启Typora</strong><br><img src="https://img-blog.csdnimg.cn/20200920101054257.gif#pic_left" alt="在这里插入图片描述"></p>
-<h2 id="2、如何更改高亮配色？（高亮默认颜色是黄色-D3D40E）"><a href="#2、如何更改高亮配色？（高亮默认颜色是黄色-D3D40E）" class="headerlink" title="2、如何更改高亮配色？（高亮默认颜色是黄色#D3D40E）"></a>2、如何更改高亮配色？（高亮默认颜色是黄色#D3D40E）</h2><p>打开方式：文件 &gt; 偏好设置 &gt; 外观 &gt; 打开主题文件夹 &gt; <em>night.css</em>文件 &gt; Ctrl+F 搜索 mark &gt; 修改喜欢的 background(背景颜色) 和 color(字体颜色) 保存<br><img src="https://img-blog.csdnimg.cn/20200920104332324.gif#pic_left" alt="在这里插入图片描述"></p>
-<h2 id="3、如何设置高亮快捷键"><a href="#3、如何设置高亮快捷键" class="headerlink" title="3、如何设置高亮快捷键"></a>3、如何设置高亮快捷键</h2><p>设置方式：文件 &gt; 偏好设置 &gt; 通用 &gt; 打开高级设置 &gt; 会看到两个<em>json</em>文件，打开其中一个 &gt; 在 “keyBinding” 中添加 <strong>“Highlight”:“Ctrl+Shift+H”</strong>&gt; 保存 &gt; 另一个json文件也在 “keyBinding” 中添加 <strong>“Highlight”:“Ctrl+Shift+H”</strong> &gt; 保存<br><img src="https://img-blog.csdnimg.cn/20200920110453114.gif#pic_left" alt="在这里插入图片描述"></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/19/typora%E5%AD%97%E4%BD%93%E8%AE%BE%E7%BD%AE%E9%A2%9C%E8%89%B2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/19/typora%E5%AD%97%E4%BD%93%E8%AE%BE%E7%BD%AE%E9%A2%9C%E8%89%B2/" class="post-title-link" itemprop="url">typora字体设置颜色</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-19 09:36:10 / Modified: 10:37:07" itemprop="dateCreated datePublished" datetime="2020-11-19T09:36:10+08:00">2020-11-19</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/markdown/" itemprop="url" rel="index"><span itemprop="name">markdown</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>作者：<a target="_blank" rel="noopener" href="https://ispotu.blog.csdn.net/">ispotu</a></p>
-<p>出处：<a target="_blank" rel="noopener" href="https://blog.csdn.net/superit401/article/details/106344453/">https://blog.csdn.net/superit401/article/details/106344453/</a></p>
-<p>typora没有直接设置字体颜色的功能，不能像word一样，选中字体直接设置想要的颜色。</p>
-<p>下面第一种方法需安装软件AutoHotKey，操作还算简单；后两种方法都是偏技术的，对于非技术的小白可能有点困难。</p>
-<h2 id="方案一：安装软件AutoHotKey（较简单）"><a href="#方案一：安装软件AutoHotKey（较简单）" class="headerlink" title="方案一：安装软件AutoHotKey（较简单）"></a>方案一：安装软件AutoHotKey（较简单）</h2><p>AutoHotKey是一款著名的windows系统快捷键设置的软件，轻便小巧。</p>
-<p>官方下载: <a target="_blank" rel="noopener" href="https://autohotkey.com/download/ahk-install.exe">https://autohotkey.com/download/ahk-install.exe</a></p>
-<p> （1）先安装AutoHotKey</p>
-<p>（2）打开记事本，把如下内容复制粘贴进去：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">; Typora</span><br><span class="line">; 快捷增加字体颜色</span><br><span class="line">; SendInput &#123;Text&#125; 解决中文输入法问题</span><br><span class="line"></span><br><span class="line">#IfWinActive ahk_exe Typora.exe&#123;</span><br><span class="line">    ; Ctrl+Alt+O 橙色</span><br><span class="line">    ^!o::addFontColor(&quot;orange&quot;)</span><br><span class="line">    ; Ctrl+Alt+R 红色</span><br><span class="line">    ^!r::addFontColor(&quot;red&quot;)</span><br><span class="line">    ; Ctrl+Alt+B 浅蓝色</span><br><span class="line">    ^!b::addFontColor(&quot;cornflowerblue&quot;)</span><br><span class="line">&#125;</span><br><span class="line">; 快捷增加字体颜色</span><br><span class="line">addFontColor(color)&#123;</span><br><span class="line">    clipboard :&#x3D; &quot;&quot; ; 清空剪切板</span><br><span class="line">    Send &#123;ctrl down&#125;c&#123;ctrl up&#125; ; 复制</span><br><span class="line">    SendInput &#123;TEXT&#125;&lt;font color&#x3D;&#39;%color%&#39;&gt;</span><br><span class="line">    SendInput &#123;ctrl down&#125;v&#123;ctrl up&#125; ; 粘贴</span><br><span class="line">    If(clipboard &#x3D; &quot;&quot;)&#123;</span><br><span class="line">        SendInput &#123;TEXT&#125;&lt;&#x2F;font&gt; ; Typora 在这不会自动补充</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">        SendInput &#123;TEXT&#125;&lt;&#x2F; ; Typora中自动补全标签</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>（3）将文件保存为ahk后缀的文件，如TyporaHotKey.ahk</p>
-<p>(4)双击运行</p>
-<p>（5）在Typora软件里就可以使用快捷键：如按<code>Ctrl+Alt+O</code>添加橙色，Ctrl+Alt+R 红色，按<code>Ctrl+\</code>取消样式！</p>
-<p>也可以右键 <code>MyHotkeyScript.ahk</code> 脚本文件，点击<code>Compile Script</code>编译脚本成<code>exe</code>程序，就可以不用下载<code>Autohotkey</code>在其他电脑上运行了。</p>
-<p>上面脚本只写了橙色、红色、浅蓝三种颜色，你可以按需照例增加其他颜色或快捷方式！</p>
-<h2 id="方案二：改html代码（懂前端技术超简单）"><a href="#方案二：改html代码（懂前端技术超简单）" class="headerlink" title="方案二：改html代码（懂前端技术超简单）"></a>方案二：改html代码（懂前端技术超简单）</h2><p>视图——开发者工具（Shift+F12），打开html代码调试模式</p>
-<p> 按快捷键Shift+F12（可能还需要同时按住Fn）</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">span</span> <span class="attr">style</span>=<span class="string">&quot;color:文字颜色;background:背景颜色;font-size:文字大小;font-family:字体;&quot;</span>&gt;</span>你要改色的文字<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>按照这个模板，改字体的style属性即可。</p>
-<p>示例：</p>
-<p>style=”color:red”</p>
-<p>style=”color:maroon”</p>
-<p>style=”color:fuchsia”</p>
-<p>style=”color:brown”</p>
-<p>style=”color:blue”</p>
-<p>style=”color:aqua”</p>
-<p>style=”color:green”</p>
-<p>style=”color:orange”</p>
-<p>style=”color:purple”</p>
-<p>style=”color:white;background:black;”</p>
-<p>style=”background:yellow”</p>
-<p>style=”background:red”</p>
-<p>style=”background:orange”</p>
-<p>style=”color:white;background:green”</p>
-<p>style=”color:white;background:blue”</p>
-<p><img src="https://img-blog.csdnimg.cn/20200525225939274.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3N1cGVyaXQ0MDE=,size_16,color_FFFFFF,t_70" alt="img"></p>
-<h1 id="方案三：使用内联公式（复杂）"><a href="#方案三：使用内联公式（复杂）" class="headerlink" title="方案三：使用内联公式（复杂）"></a>方案三：使用内联公式（复杂）</h1><p><strong>1.开启使用内联公式</strong></p>
-<p>文件——偏好设置（Ctrl+逗号）——Markdown——勾选“内联公式”——重启Typora</p>
-<p><img src="https://img-blog.csdnimg.cn/20200525230147618.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3N1cGVyaXQ0MDE=,size_16,color_FFFFFF,t_70" alt="img"></p>
-<p><strong>2.输入公式代码设置颜色</strong></p>
-<p>输入$，按Esc键会自动在后面加上一个$，然后在这两个$之间输入公式。</p>
-<p>如：</p>
-<p><img src="https://img-blog.csdnimg.cn/20200525231636600.png" alt="img"></p>
-<p>直接在typora里输入：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$\textcolor&#123;Magenta&#125;&#123;洋红色&#125; $:设置颜色为$\textcolor&#123;RedOrange&#125;&#123;橙红色&#125; $，设置字体颜色为$\textcolor&#123;Blue&#125;&#123;蓝色&#125; $。数学公式里各元素也能分别设置颜色：</span><br><span class="line">$\textcolor&#123;red&#125;&#123;\int_a^b&#125;\textcolor&#123;blue&#125;&#123;f(x)&#125;\textcolor&#123;green&#125;&#123;dx&#125;\textcolor&#123;brown&#125;&#123;&#x3D;c&#125;$</span><br></pre></td></tr></table></figure>
-
-<p>文本颜色设置公式：</p>
-<p><font color="red"><strong>$\textcolor{red}{这里输入你要改变颜色的文字} $</strong></font></p>
-<h3 id="颜色公式代码大全："><a href="#颜色公式代码大全：" class="headerlink" title="颜色公式代码大全："></a>颜色公式代码大全：</h3><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">$\textcolor&#123;GreenYellow&#125;&#123;GreenYellow&#125; $</span><br><span class="line">$\textcolor&#123;Yellow&#125;&#123;Yellow&#125;$</span><br><span class="line">$\textcolor&#123;Goldenrod&#125;&#123;Goldenrod&#125; $</span><br><span class="line">$\textcolor&#123;Dandelion&#125;&#123;Dandelion&#125;$</span><br><span class="line">$\textcolor&#123;Apricot&#125;&#123;Apricot&#125; $</span><br><span class="line">$\textcolor&#123;Peach&#125;&#123;Peach&#125;$</span><br><span class="line">$\textcolor&#123;Melon&#125;&#123;Melon&#125; $</span><br><span class="line">$\textcolor&#123;YellowOrange&#125;&#123;YellowOrange&#125;$</span><br><span class="line">$\textcolor&#123;Orange&#125;&#123;Orange&#125; $</span><br><span class="line">$\textcolor&#123;BurntOrange&#125;&#123;BurntOrange&#125;$</span><br><span class="line">$\textcolor&#123;Bittersweet&#125;&#123;Bittersweet&#125;$</span><br><span class="line">$\textcolor&#123;RedOrange&#125;&#123;RedOrange&#125; $</span><br><span class="line">$\textcolor&#123;Mahogany&#125;&#123;Mahogany&#125;$</span><br><span class="line">$\textcolor&#123;Maroon&#125;&#123;Maroon&#125; $</span><br><span class="line">$\textcolor&#123;BrickRed&#125;&#123;BrickRed&#125;$</span><br><span class="line">$\textcolor&#123;Red&#125;&#123;Red&#125; $</span><br><span class="line">$\textcolor&#123;OrangeRed&#125;&#123;OrangeRed&#125;$</span><br><span class="line">$\textcolor&#123;RubineRed&#125;&#123;RubineRed&#125;$</span><br><span class="line">$\textcolor&#123;WildStrawberry&#125;&#123;WildStrawberry&#125;$</span><br><span class="line">$\textcolor&#123;Salmon&#125;&#123;Salmon&#125;$</span><br><span class="line">$\textcolor&#123;CarnationPink&#125;&#123;CarnationPink&#125;$</span><br><span class="line">$\textcolor&#123;Magenta&#125;&#123;Magenta&#125; $</span><br><span class="line">$\textcolor&#123;VioletRed&#125;&#123;VioletRed&#125;$</span><br><span class="line">$\textcolor&#123;Rhodamine&#125;&#123;Rhodamine&#125; $</span><br><span class="line">$\textcolor&#123;Mulberry&#125;&#123;Mulberry&#125;$</span><br><span class="line">$\textcolor&#123;RedViolet&#125;&#123;RedViolet&#125; $</span><br><span class="line">$\textcolor&#123;Fuchsia&#125;&#123;Fuchsia&#125;$</span><br><span class="line">$\textcolor&#123;Lavender&#125;&#123;Lavender&#125; $</span><br><span class="line">$\textcolor&#123;Thistle&#125;&#123;Thistle&#125;$</span><br><span class="line">$\textcolor&#123;Orchid&#125;&#123;Orchid&#125; $</span><br><span class="line">$\textcolor&#123;DarkOrchid&#125;&#123;DarkOrchid&#125;$</span><br><span class="line">$\textcolor&#123;Purple&#125;&#123;Purple&#125; $</span><br><span class="line">$\textcolor&#123;Plum&#125;&#123;Plum&#125;$</span><br><span class="line">$\textcolor&#123;Violet&#125;&#123;Violet&#125; $</span><br><span class="line">$\textcolor&#123;RoyalPurple&#125;&#123;RoyalPurple&#125;$</span><br><span class="line">$\textcolor&#123;BlueViolet&#125;&#123;BlueViolet&#125;$</span><br><span class="line">$\textcolor&#123;Periwinkle&#125;&#123;Periwinkle&#125;$</span><br><span class="line">$\textcolor&#123;CadetBlue&#125;&#123;CadetBlue&#125;$</span><br><span class="line">$\textcolor&#123;CornflowerBlue&#125;&#123;CornflowerBlue&#125;$</span><br><span class="line">$\textcolor&#123;MidnightBlue&#125;&#123;MidnightBlue&#125;$</span><br><span class="line">$\textcolor&#123;NavyBlue&#125;&#123;NavyBlue&#125; $</span><br><span class="line">$\textcolor&#123;RoyalBlue&#125;&#123;RoyalBlue&#125;$</span><br><span class="line">$\textcolor&#123;Blue&#125;&#123;Blue&#125; $</span><br><span class="line">$\textcolor&#123;Cerulean&#125;&#123;Cerulean&#125;$</span><br><span class="line">$\textcolor&#123;Cyan&#125;&#123;Cyan&#125; $</span><br><span class="line">$\textcolor&#123;ProcessBlue&#125;&#123;ProcessBlue&#125;$</span><br><span class="line">$\textcolor&#123;SkyBlue&#125;&#123;SkyBlue&#125; $</span><br><span class="line">$\textcolor&#123;Turquoise&#125;&#123;Turquoise&#125;$</span><br><span class="line">$\textcolor&#123;TealBlue&#125;&#123;TealBlue&#125; $</span><br><span class="line">$\textcolor&#123;Aquamarine&#125;&#123;Aquamarine&#125;$</span><br><span class="line">$\textcolor&#123;BlueGreen&#125;&#123;BlueGreen&#125; $</span><br><span class="line">$\textcolor&#123;Emerald&#125;&#123;Emerald&#125;$</span><br><span class="line">$\textcolor&#123;JungleGreen&#125;&#123;JungleGreen&#125;$</span><br><span class="line">$\textcolor&#123;SeaGreen&#125;&#123;SeaGreen&#125; $</span><br><span class="line">$\textcolor&#123;Green&#125;&#123;Green&#125;$</span><br><span class="line">$\textcolor&#123;ForestGreen&#125;&#123;ForestGreen&#125;$</span><br><span class="line">$\textcolor&#123;PineGreen&#125;&#123;PineGreen&#125; $</span><br><span class="line">$\textcolor&#123;LimeGreen&#125;&#123;LimeGreen&#125;$</span><br><span class="line">$\textcolor&#123;YellowGreen&#125;&#123;YellowGreen&#125;$</span><br><span class="line">$\textcolor&#123;SpringGreen&#125;&#123;SpringGreen&#125;$</span><br><span class="line">$\textcolor&#123;OliveGreen&#125;&#123;OliveGreen&#125;$</span><br><span class="line">$\textcolor&#123;RawSienna&#125;&#123;RawSienna&#125; $</span><br><span class="line">$\textcolor&#123;Sepia&#125;&#123;Sepia&#125;$</span><br><span class="line">$\textcolor&#123;Brown&#125;&#123;Brown&#125; $</span><br><span class="line">$\textcolor&#123;Tan&#125;&#123;Tan&#125;$</span><br><span class="line">$\textcolor&#123;Gray&#125;&#123;Gray&#125; $</span><br><span class="line">$\textcolor&#123;Black&#125;&#123;Black&#125;$</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/17/hexo%E4%BD%BF%E7%94%A8next%E4%B8%BB%E9%A2%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/17/hexo%E4%BD%BF%E7%94%A8next%E4%B8%BB%E9%A2%98/" class="post-title-link" itemprop="url">hexo使用next主题</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-11-17 20:25:31" itemprop="dateCreated datePublished" datetime="2020-11-17T20:25:31+08:00">2020-11-17</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-11-30 10:51:45" itemprop="dateModified" datetime="2020-11-30T10:51:45+08:00">2020-11-30</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/hexo/" itemprop="url" rel="index"><span itemprop="name">hexo</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="主题next"><a href="#主题next" class="headerlink" title="主题next"></a>主题next</h2><p><strong>下载next主题</strong></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/theme-next/hexo-theme-next themes/next</span><br></pre></td></tr></table></figure>
-
-<p><strong>修改_config.yml配置</strong></p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">theme:</span> <span class="string">next</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>根据要求修改主题下_config.yml配置</strong></p>
-<p><a target="_blank" rel="noopener" href="https://theme-next.js.org/docs/theme-settings/">next文档</a></p>
-<h2 id="更复杂的自定义优化可以参考如下文章"><a href="#更复杂的自定义优化可以参考如下文章" class="headerlink" title="更复杂的自定义优化可以参考如下文章"></a>更复杂的自定义优化可以参考如下文章</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/nightmare_dimple/article/details/86661502">Hexo博客优化之Next主题美化</a></p>
-<p><a target="_blank" rel="noopener" href="https://theme-next.js.org/docs/tag-plugins/mermaid.html">可以生成图形</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/whiremapple/p/12419097.html">Hexo博客主题安装和优化（一）</a></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/17/mysql%E8%BF%9B%E9%98%B6%E6%93%8D%E4%BD%9C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/17/mysql%E8%BF%9B%E9%98%B6%E6%93%8D%E4%BD%9C/" class="post-title-link" itemprop="url">mysql进阶操作</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-17 19:57:19 / Modified: 20:11:46" itemprop="dateCreated datePublished" datetime="2020-11-17T19:57:19+08:00">2020-11-17</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="转储操作"><a href="#转储操作" class="headerlink" title="转储操作"></a>转储操作</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CREATE table t_a (SELECT * from o_order limit 10);</span><br><span class="line">INSERT into t_a SELECT *,5 FROM o_order limit 10;</span><br></pre></td></tr></table></figure>
-
-<p><strong>区别</strong></p>
-<ol>
-<li>第一个sql执行的时候，表t_a不能存在</li>
-<li>第二个sql执行时，表必须存在，可以设置指定常量字段即二个表字段有差异</li>
-</ol>
-<h2 id="插入操作（可忽略或更新已存在）"><a href="#插入操作（可忽略或更新已存在）" class="headerlink" title="插入操作（可忽略或更新已存在）"></a>插入操作（可忽略或更新已存在）</h2><p><strong>1. insert into</strong>表示插入数据，数据库会检查主键（PrimaryKey）或者unique索引，如果出现重复会报错；</p>
-<p><strong>2. insert ignore into</strong> table(name)  select  name from table2; 根据主键（PrimaryKey）或者unique索引判断，如果已存在则忽略数据，否则插入数据</p>
-<p><strong>3. replace into</strong>表示插入替换数据，需求表中有PrimaryKey，或者unique索引的话，如果数据库已经存在数据，则用新数据替换，如果没有数据效果则和insert into一样；</p>
-<p>REPLACE语句会返回一个数，来指示受影响的行的数目。该数是被删除和被插入的行数的和。如果对于一个单行REPLACE该数为1，则一行被插入，同时没有行被删除。<br>如果该数大于1，则在新行被插入前，有一个或多个旧行被删除。如果表包含多个唯一索引，并且新行复制了在不同的唯一索引中的不同旧行的值，则有可能是一个单一行替换了多个旧行</p>
-<p><strong>4. insert into … ON DUPLICATE KEY UPDATE</strong></p>
-<p><strong>如果你插入的记录导致一个UNIQUE索引或者primary key(主键)出现重复，那么就会认为该条记录存在，则执行update语句而不是insert语句，反之，则执行insert语句而不是更新语句</strong></p>
-<p>如果行作为新记录被插入，则受影响行的值为1；如果原有的记录被更新，则受影响行的值为2，如果更新的数据和已有的数据一模一样，则受影响的行数是0</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">create table testtb(</span><br><span class="line">  id int not null primary key,</span><br><span class="line">  name varchar(50),</span><br><span class="line">  age int</span><br><span class="line">);</span><br><span class="line">insert into testtb(id,name,age)values(1,&quot;bb&quot;,13);</span><br><span class="line">select * from testtb;</span><br><span class="line">insert ignore into testtb(id,name,age)values(1,&quot;aa&quot;,13);</span><br><span class="line">select * from testtb;&#x2F;&#x2F;仍是1，“bb”,13，因为id是主键，出现主键重复但使用了ignore则错误被忽略</span><br><span class="line">replace into testtb(id,name,age)values(1,&quot;aa&quot;,12);</span><br><span class="line">select * from testtb; &#x2F;&#x2F;数据变为1,&quot;aa&quot;,12</span><br><span class="line">insert into testtb(id, name, age) values (1,&#39;hui&#39;,30) ON DUPLICATE KEY UPDATE age &#x3D; age + 50; </span><br><span class="line">select * from testtb; &#x2F;&#x2F;数据变成1,&quot;aa&quot;,62</span><br></pre></td></tr></table></figure>
-
 
       
     </div>
