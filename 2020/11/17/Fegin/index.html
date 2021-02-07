@@ -32,7 +32,7 @@
 <meta property="og:description" content="Fegin客户端GET：  客户端对象不加@RequesetParam,控制类使用对象接收，时间格式会出现转换失败【string转date异常】 客户端对象不增加@RequesetParam，控制类使用@RequesetParam对象接收，参数miss【orderSource&#x3D;TAKEGO&amp;logicDelete&#x3D;0&amp;pageSize&#x3D;20&amp;startTime&#x3D;2020-1">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2020-11-17T07:29:08.000Z">
-<meta property="article:modified_time" content="2020-11-17T11:55:34.527Z">
+<meta property="article:modified_time" content="2021-02-05T08:37:37.097Z">
 <meta property="article:author" content="灰(｢･ω･)｢嘿灰">
 <meta property="article:tag" content="Fegin">
 <meta name="twitter:card" content="summary">
@@ -213,20 +213,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">82</span>
+          <span class="site-state-item-count">94</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-count">20</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">53</span>
+        <span class="site-state-item-count">60</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -290,10 +290,16 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2020-11-17 15:29:08 / Modified: 19:55:34" itemprop="dateCreated datePublished" datetime="2020-11-17T15:29:08+08:00">2020-11-17</time>
+      <time title="Created: 2020-11-17 15:29:08" itemprop="dateCreated datePublished" datetime="2020-11-17T15:29:08+08:00">2020-11-17</time>
     </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2021-02-05 16:37:37" itemprop="dateModified" datetime="2021-02-05T16:37:37+08:00">2021-02-05</time>
+      </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
@@ -326,11 +332,16 @@
 <p>​    使用@RequestBody</p>
 <p><strong>List 数组</strong></p>
 <pre><code>1. @RequestParam(&quot;ids&quot;); 
- 2. 使用json</code></pre>
+2. 使用json</code></pre>
 <h2 id="RequestParam"><a href="#RequestParam" class="headerlink" title="@RequestParam"></a>@RequestParam</h2><p>@RequesetParam(name=”vo”) 把参数转换成了vo=””格式,{对象传递不应该增加此注解}，用于当key名称不对应时指定key名称，或者指定value是否为空，默认不为空</p>
 <h2 id="Fegin使用GET方法，Body请求异常"><a href="#Fegin使用GET方法，Body请求异常" class="headerlink" title="Fegin使用GET方法，Body请求异常"></a>Fegin使用GET方法，Body请求异常</h2><p>HttpClientFeignLoadBalancedConfiguration&gt;OkHttpFeignLoadBalancedConfiguration&gt;DefaultFeignLoadBalancedConfiguration,对应的底层http工具：httpclient&gt;okhttp&gt;HttpURLConnection</p>
 <p>根据http协议定义是支持@RequestBody+ RequestMethod.GET的，那么具体就得看工具包实现的不同的，查看源码发现<strong>okhttp和HttpURLConnection都不支持（报错），只有httpclient支持。（默认走HttpURLConnection会报错）</strong></p>
 <p>我们知道只有httpclient支持@RequestBody+ RequestMethod.GET，所以我们必须满足条件走HttpClientFeignLoadBalancedConfiguration才行 </p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">feign:</span></span><br><span class="line">  <span class="attr">httpclient:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p> 依赖包：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.httpcomponents<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>httpclient<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.5.9<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>io.github.openfeign<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>feign-httpclient<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">version</span>&gt;</span>10.2.3<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
 
     </div>
 
@@ -402,7 +413,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2020</span>
+  <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
