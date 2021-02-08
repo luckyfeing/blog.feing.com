@@ -209,20 +209,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">94</span>
+          <span class="site-state-item-count">96</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">20</span>
+        <span class="site-state-item-count">21</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-count">62</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -254,6 +254,228 @@
       
 
       
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/16/Spring-boot-admin%E9%85%8D%E7%BD%AE%E5%B1%9E%E6%80%A7%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/16/Spring-boot-admin%E9%85%8D%E7%BD%AE%E5%B1%9E%E6%80%A7%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Spring-boot-admin配置属性详解</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-12-16 18:11:38" itemprop="dateCreated datePublished" datetime="2020-12-16T18:11:38+08:00">2020-12-16</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-31 14:42:58" itemprop="dateModified" datetime="2020-12-31T14:42:58+08:00">2020-12-31</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">微服务</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/springboot/" itemprop="url" rel="index"><span itemprop="name">springboot</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="client端配置属性详解"><a href="#client端配置属性详解" class="headerlink" title="client端配置属性详解"></a>client端配置属性详解</h2><p><strong>spring.boot.admin.client.enabled</strong>：是否启用springbootAdmin客户端，默认为true；<br><strong>spring.boot.admin.client.url</strong>：要注册的server端的url地址。如果要同时在多个server端口注册，则用逗号分隔各个server端的url地址；<br><strong>spring.boot.admin.client.api-path</strong>：默认值是instances。server端获取client信息的路径，默认情况下server通过访问/instances请求来获取到client端的信息。（client端向server端注册，注册成功后server端会给该client创建一个唯一的clientID值。当server端需要获取client的信息，比如health信息时，server端会发送<a target="_blank" rel="noopener" href="http://111.11.11.1:8080/instances/clientID/actuator/health%E5%8D%B3%E5%8F%AF%EF%BC%8C%E8%BF%99%E9%87%8C%E7%9A%84http://111.11.11.1:8080%E6%98%AFclient%E6%89%80%E5%9C%A8%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84IP%E5%9C%B0%E5%9D%80%EF%BC%8Cinstances%E5%B0%B1%E6%98%AF%E8%AF%A5%E5%B1%9E%E6%80%A7%E7%9A%84%E5%80%BC%EF%BC%89">http://111.11.11.1:8080/instances/clientID/actuator/health即可，这里的http://111.11.11.1:8080是client所在服务器的IP地址，instances就是该属性的值）</a></p>
+<p><strong>spring.boot.admin.client.username</strong>：如果server端需要进行认证时，该属性用于配置用户名。<br><strong>spring.boot.admin.client.password</strong>：如果server端需要进行认证时，该属性用于配置密码。</p>
+<p><strong>spring.boot.admin.client.period</strong>：注册时间间隔，单位是毫秒；默认值是10秒钟注册一次。（client通过持续不断地向server端进行注册来保持client端与server端的连接）</p>
+<p><strong>spring.boot.admin.client.connect-timeout</strong>：注册连接超时时间，单位是毫秒，默认值是5秒。当client向server进行注册时，如果5秒钟没有注册完成则认为本次注册失败；</p>
+<p><strong>spring.boot.admin.client.read-timeout</strong>：注册读取超时，单位是毫秒，默认值是5秒；</p>
+<p><strong>spring.boot.admin.client.auto-registration</strong>：是否开启自动注册，默认值是true。</p>
+<p><strong>spring.boot.admin.client.auto-deregistration</strong>：是否开启自动注销，默认值是null。如果服务端运行在云平台，默认值是true；</p>
+<p><strong>spring.boot.admin.client.register-once</strong>：默认值为true。如果值为true的话，client只会在一个server端进行注册（按照spring.boot.admin.client.url中设置的server的顺序）。如果该server端宕机，会自动在下一个server端进行注册。如果该属性值为false，则会在所有的server端进行注册；</p>
+<p><strong>spring.boot.admin.client.instance.management-url</strong>：注册的management-url，如果可用的url不同的话可以重写该值。如果不配置该属性的话，默认该属性值与management-base-url 和 management.context-path两个属性值有关。比如工程中该值为：managementUrl=<a target="_blank" rel="noopener" href="http://192.168.200.165:8080/actuator%EF%BC%8C%E5%85%B6%E4%B8%AD[http://192.168.200.165:8080](http://192.168.200.165:8080/)%E4%B8%BAmanagement-base-url%EF%BC%8C/actuator%E6%98%AFmanagement.context-path%EF%BC%88%E8%AF%A5%E5%B1%9E%E6%80%A7%E5%80%BC%E6%98%AFspring">http://192.168.200.165:8080/actuator，其中[http://192.168.200.165:8080](http://192.168.200.165:8080/)为management-base-url，/actuator是management.context-path（该属性值是spring</a> actuator的属性值）；</p>
+<p><strong>spring.boot.admin.client.instance.management-base-url</strong>：用于计算management-url 的基本URL。该路径值在运行时进行获取并赋值给 base url。如果不配置该属性值的话，默认该属性值与management.port, service-url 以及server.servlet-path有关。比如工程中该值为<a target="_blank" rel="noopener" href="http://192.168.200.165:8080/">http://192.168.200.165:8080，其中8080</a>端口是配置的获取actuator信息的端口。192.168.200.165是设置的service-url值，如果没有设置service-url的话，则为配置的server.servlet-path值（项目的启动路径）。</p>
+<p><strong>spring.boot.admin.client.instance.health-url</strong>：注册的health-url地址，如果可用的url不同可以重写该值。如果不配置该属性的话，默认该属性值与management-url 以及endpoints.health.id有关。比如工程中该值为：healthUrl=<a target="_blank" rel="noopener" href="http://192.168.200.165:8080/actuator/health%EF%BC%8C%E5%85%B6%E4%B8%ADhttp://192.168.200.165:8080/actuator%E6%98%AFmanagement-url%EF%BC%8Chealth%E6%98%AFendpoints.health.id%E3%80%82">http://192.168.200.165:8080/actuator/health，其中http://192.168.200.165:8080/actuator是management-url，health是endpoints.health.id。</a></p>
+<p><strong>spring.boot.admin.client.instance.service-base-url</strong>：用于计算service-url 的基本URL。该路径值在运行时进行获取并赋值给 base url。如果不配置该属性值的话，默认该属性值与hostname, server.port有关。比如工程中该值为<a target="_blank" rel="noopener" href="http://p-v-9:8080/">http://p-v-9:8080，其中8080</a>端口是配置的server.port。p-v-9是client所在服务器的hostname。</p>
+<p><strong>spring.boot.admin.client.instance.service-url</strong>：注册的service-url值。如果不配置该属性值的话，基于 service-base-url 和 server.context-path进行赋值。比如工程中为<a target="_blank" rel="noopener" href="http://p-v-9:8080/,%E5%85%B6%E4%B8%ADp-v-9%E6%98%AFbase-url%EF%BC%8C/%E6%98%AF%E5%B7%A5%E7%A8%8B%E9%85%8D%E7%BD%AE%E7%9A%84">http://p-v-9:8080/,其中p-v-9是base-url，/是工程配置的</a> server.context-path值。（这里要注意的是，当server端与client端不在同一台服务器上的时候，要配置该属性的值。如果不配置的话，server端就会根据默认的命名规则来配置该值，比如<a target="_blank" rel="noopener" href="http://p-v-9:8080/%EF%BC%8C%E5%A6%82%E6%9E%9Cserver%E4%BD%BF%E7%94%A8%E8%BF%99%E4%B8%AA%E5%80%BC%E6%9D%A5%E8%8E%B7%E5%8F%96client%E7%9A%84%E5%90%84%E7%A7%8D%E6%80%A7%E8%83%BD%E4%BF%A1%E6%81%AF%E7%9A%84%E8%AF%9D%E6%98%AF%E8%8E%B7%E5%8F%96%E4%B8%8D%E5%88%B0%E7%9A%84%EF%BC%89%EF%BC%9B">http://p-v-9:8080/，如果server使用这个值来获取client的各种性能信息的话是获取不到的）；</a></p>
+<p><strong>spring.boot.admin.client.instance.name</strong>：客户端工程的名字。默认值是配置的spring.application.name的值，如果没有配置该属性的话，默认值是spring-boot-application；</p>
+<p><strong>spring.boot.admin.client.instance.prefer-ip</strong>：是否使用注册的ip地址来取代上述各个url中hostname的值，默认值是false（也就是说默认情况下上述各个url中会使用hostname的值，比如我的电脑的hostname为p-v-9）。如果设置了server.address或management.address的话ip地址就是该值，如果没有设置这两个属性的话ip地址值是InetAddress.getLocalHost()的值。</p>
+<p>*<em>spring.boot.admin.client.instance.metadata.**</em>：与该应用有关的元数据，以键值对的形式赋值。</p>
+<h2 id="server端配置属性详解"><a href="#server端配置属性详解" class="headerlink" title="server端配置属性详解"></a>server端配置属性详解</h2><p>spring.boot.admin.context-path：server端的访问路径，默认是/。默认情况下server的访问地址是<a target="_blank" rel="noopener" href="https://blog.csdn.net/">http://<strong>.</strong>.<strong>.</strong>:**/</a>,这里**.<strong>.</strong>.**:**是server所在服务器的ip地址。我们的工程设置该值是springbootAdmin，那么工程的server端访问地址是<a target="_blank" rel="noopener" href="http://111.11.11.1:8000/springbootAdmin">http://111.11.11.1:8000/springbootAdmin</a>;</p>
+<p><strong>spring.boot.admin.monitor.period</strong>:更新client端状态的时间间隔，单位是毫秒，默认值是10秒钟；</p>
+<p><strong>spring.boot.admin.monitor.status-lifetime</strong>：client端状态的生命周期，该生命周期内不会更新client状态。单位是毫秒，默认值是10秒钟；</p>
+<p><strong>spring.boot.admin.monitor.connect-timeout</strong>：查询client状态信息时的连接超时时间，单位是毫秒，默认是2秒（如果2秒内没有获取到client的状态信息，则认为连接已经断开）。</p>
+<p><strong>spring.boot.admin.monitor.read-timeout</strong>：查询client状态信息时的读取超时时间，单位是毫秒，默认是2秒（如果2秒内没有获取到client的状态信息，则认为读取失败）。</p>
+<p><strong>spring.boot.admin.metadata-keys-to-sanitize</strong>：要被过滤掉的元数据（当与正则表达式相匹配时，这些数据会在输出的json数据中过滤掉），默认值是”.<strong>password$”, “.*secret$”, “.*key$”, “.</strong>$token$”, “.<strong>credentials.</strong>“, “.*vcap_services$”；</p>
+<p><strong>spring.boot.admin.probed-endpoints</strong>：要获取的client的端点信息，默认是”health”, “env”, “metrics”, “httptrace:trace”, “threaddump:dump”, “jolokia”, “info”, “logfile”, “refresh”, “flyway”, “liquibase”, “heapdump”, “loggers”, “auditevents”；</p>
+<p><strong>spring.boot.admin.instance-proxy.ignored-headers</strong>：向client发起请求时不会被转发的headers信息，默认值是”Cookie”, “Set-Cookie”, “Authorization”；</p>
+<p><strong>spring.boot.admin.ui.brand</strong>：在导航栏中显示的brand值，默认是”<img src="/2020/12/16/Spring-boot-admin%E9%85%8D%E7%BD%AE%E5%B1%9E%E6%80%A7%E8%AF%A6%E8%A7%A3/img/icon-spring-boot-admin.svg"><span>Spring Boot Admin</span>“；</p>
+<p><strong>spring.boot.admin.ui.title</strong>：显示的页面标题，默认是”Spring Boot Admin”</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/16/Spring-boot-admin%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/16/Spring-boot-admin%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">Spring-boot-admin简单使用</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-12-16 17:41:38" itemprop="dateCreated datePublished" datetime="2020-12-16T17:41:38+08:00">2020-12-16</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-31 14:43:10" itemprop="dateModified" datetime="2020-12-31T14:43:10+08:00">2020-12-31</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">微服务</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/springboot/" itemprop="url" rel="index"><span itemprop="name">springboot</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>Spring Boot Admin 用于监控基于 Spring Boot 的应用，它是在 Spring Boot Actuator 的基础上提供简洁的可视化 WEB UI。</p>
+<h2 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h2><p>Spring Boot Admin 提供了很多功能，如显示 name、id 和 version，显示在线状态，Loggers 的日志级别管理，Threads 线程管理，Environment 管理等。</p>
+<h2 id="组成"><a href="#组成" class="headerlink" title="组成"></a>组成</h2><p>在 Spring Boot 项目中，Spring Boot Admin 作为 Server 端，其他的要被监控的应用作为 Client 端</p>
+<h2 id="简单使用（Spring-Boot-项目）"><a href="#简单使用（Spring-Boot-项目）" class="headerlink" title="简单使用（Spring Boot 项目）"></a>简单使用（Spring Boot 项目）</h2><h3 id="pom依赖"><a href="#pom依赖" class="headerlink" title="pom依赖"></a>pom依赖</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>de.codecentric<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-admin-dependencies<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.1.5<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">type</span>&gt;</span>pom<span class="tag">&lt;/<span class="name">type</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">scope</span>&gt;</span>import<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-dependencies<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.2.6.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">type</span>&gt;</span>pom<span class="tag">&lt;/<span class="name">type</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">scope</span>&gt;</span>import<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="服务端"><a href="#服务端" class="headerlink" title="服务端"></a>服务端</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>de.codecentric<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-admin-starter-server<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>代码配置</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="meta">@EnableAutoConfiguration</span></span><br><span class="line"><span class="meta">@EnableAdminServer</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SpringBootAdminApplication</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SpringApplication.run(SpringBootAdminApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置文件</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">port:</span> <span class="number">8788</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="客户端"><a href="#客户端" class="headerlink" title="客户端"></a>客户端</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>de.codecentric<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-admin-starter-client<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>配置文件</strong></p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">spring.boot.admin.client.url</span>: <span class="string">&quot;http://localhost:8788&quot;  </span></span><br><span class="line"><span class="meta">management.endpoints.web.exposure.include</span>: <span class="string">&quot;*&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>以上的配置，就可以实现 Spring Boot 项目中 Spring Boot Admin 监控其他应用了。</p>
+<h2 id="进阶使用（Spring-Cloud-项目）"><a href="#进阶使用（Spring-Cloud-项目）" class="headerlink" title="进阶使用（Spring Cloud 项目）"></a>进阶使用（Spring Cloud 项目）</h2><h3 id="注册中心"><a href="#注册中心" class="headerlink" title="注册中心"></a>注册中心</h3><p>此处使用Eureka,端口8761，暂不详解</p>
+<h3 id="服务端-1"><a href="#服务端-1" class="headerlink" title="服务端"></a>服务端</h3><p><strong>pom配置</strong></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>de.codecentric<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-admin-starter-server<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-security<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-netflix-eureka-client<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>启动类配置</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="meta">@EnableAdminServer</span></span><br><span class="line"><span class="meta">@EnableEurekaClient</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SpringBootAdminApplication</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SpringApplication.run(SpringBootAdminApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Profile(&quot;insecure&quot;)</span></span><br><span class="line">    <span class="meta">@Configuration</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">SecurityPermitAllConfig</span> <span class="keyword">extends</span> <span class="title">WebSecurityConfigurerAdapter</span> </span>&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">configure</span><span class="params">(HttpSecurity http)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">            http.authorizeRequests().anyRequest().permitAll()<span class="comment">//</span></span><br><span class="line">                    .and().csrf().disable();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Profile(&quot;secure&quot;)</span></span><br><span class="line">    <span class="meta">@Configuration</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">SecuritySecureConfig</span> <span class="keyword">extends</span> <span class="title">WebSecurityConfigurerAdapter</span> </span>&#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">final</span> String adminContextPath;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">SecuritySecureConfig</span><span class="params">(AdminServerProperties adminServerProperties)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">this</span>.adminContextPath = adminServerProperties.getContextPath();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">configure</span><span class="params">(HttpSecurity http)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">            <span class="comment">// @formatter:off</span></span><br><span class="line">            SavedRequestAwareAuthenticationSuccessHandler successHandler = <span class="keyword">new</span> SavedRequestAwareAuthenticationSuccessHandler();</span><br><span class="line">            successHandler.setTargetUrlParameter(<span class="string">&quot;redirectTo&quot;</span>);</span><br><span class="line">            http.authorizeRequests()</span><br><span class="line">                    .antMatchers(adminContextPath + <span class="string">&quot;/assets/**&quot;</span>).permitAll()</span><br><span class="line">                    .antMatchers(adminContextPath + <span class="string">&quot;/login&quot;</span>).permitAll()</span><br><span class="line">                    .anyRequest().authenticated()</span><br><span class="line">                    .and()</span><br><span class="line">                    .formLogin().loginPage(adminContextPath + <span class="string">&quot;/login&quot;</span>).successHandler(successHandler).and()</span><br><span class="line">                    .logout().logoutUrl(adminContextPath + <span class="string">&quot;/logout&quot;</span>).and()</span><br><span class="line">                    .httpBasic().and()</span><br><span class="line">                    .csrf().disable();</span><br><span class="line">            <span class="comment">// @formatter:on</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置文件</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">application:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">spring-boot-admin</span></span><br><span class="line">  <span class="attr">profiles:</span></span><br><span class="line">    <span class="attr">active:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">secure</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">port:</span> <span class="number">8788</span></span><br><span class="line"></span><br><span class="line"><span class="attr">eureka:</span>   </span><br><span class="line">  <span class="attr">instance:</span></span><br><span class="line">    <span class="attr">leaseRenewalIntervalInSeconds:</span> <span class="number">10</span></span><br><span class="line">    <span class="attr">health-check-url-path:</span> <span class="string">/actuator/health</span></span><br><span class="line">  <span class="attr">client:</span></span><br><span class="line">    <span class="attr">registryFetchIntervalSeconds:</span> <span class="number">5</span></span><br><span class="line">    <span class="attr">serviceUrl:</span></span><br><span class="line">      <span class="attr">defaultZone:</span> <span class="string">$&#123;EUREKA_SERVICE_URL:http://localhost:8761&#125;/eureka/</span></span><br><span class="line"></span><br><span class="line"><span class="attr">management:</span></span><br><span class="line">  <span class="attr">endpoints:</span></span><br><span class="line">    <span class="attr">web:</span></span><br><span class="line">      <span class="attr">exposure:</span></span><br><span class="line">        <span class="attr">include:</span> <span class="string">&quot;*&quot;</span></span><br><span class="line">  <span class="attr">endpoint:</span></span><br><span class="line">    <span class="attr">health:</span></span><br><span class="line">      <span class="attr">show-details:</span> <span class="string">ALWAYS</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">profiles:</span> <span class="string">insecure</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">profiles:</span> <span class="string">secure</span></span><br><span class="line">  <span class="attr">security:</span></span><br><span class="line">    <span class="attr">user:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">&quot;user&quot;</span></span><br><span class="line">      <span class="attr">password:</span> <span class="string">&quot;password&quot;</span></span><br><span class="line"><span class="attr">eureka:</span></span><br><span class="line">  <span class="attr">instance:</span></span><br><span class="line">    <span class="attr">metadata-map:</span></span><br><span class="line">      <span class="attr">user.name:</span> <span class="string">&quot;user&quot;</span>         <span class="comment">#These two are needed so that the server</span></span><br><span class="line">      <span class="attr">user.password:</span> <span class="string">&quot;password&quot;</span> <span class="comment">#can access the protected client endpoints</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="客户端-1"><a href="#客户端-1" class="headerlink" title="客户端"></a>客户端</h3><p>配置文件修改</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">port:</span> <span class="number">8281</span></span><br><span class="line"><span class="attr">eureka:</span></span><br><span class="line">  <span class="attr">client:</span></span><br><span class="line">    <span class="attr">serviceUrl:</span></span><br><span class="line">      <span class="comment"># 向每个注册中心注册</span></span><br><span class="line">      <span class="attr">defaultZone:</span> <span class="string">http://localhost:8761/eureka/,http://localhost:8762/eureka/</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">application:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">spring-demo-service</span></span><br><span class="line"> </span><br><span class="line"><span class="attr">management:</span></span><br><span class="line">  <span class="attr">endpoints:</span></span><br><span class="line">    <span class="attr">web:</span></span><br><span class="line">      <span class="attr">exposure:</span></span><br><span class="line">        <span class="attr">include:</span> <span class="string">&#x27;*&#x27;</span></span><br><span class="line">  <span class="attr">endpoint:</span></span><br><span class="line">      <span class="attr">health:</span></span><br><span class="line">        <span class="attr">show-details:</span> <span class="string">ALWAYS</span></span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
     
 
 
@@ -1385,302 +1607,6 @@
 <p>Kubernetes之于Cloud Foundry的关系不是挑战也不是竞争关系，Cloud Foundry希望与其更好地融合，就像Cloud Foundry Foundation执行董事Abby Kearns说的：“Cloud Foundry是结构化的PaaS平台，其他平台是非结构化的，用户的需求是多元化的，并不是一定要如何容器化，而是希望平台能够更开放、支持更多的类型。”</p>
 <h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_30154571/article/details/84955097">Cloud Foundry和 Kubernetes 的区别</a></p>
 <p><a target="_blank" rel="noopener" href="http://dockone.io/article/8295">Cloud Foundry和Kubernetes结合的过去与未来</a></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/" class="post-title-link" itemprop="url">RabbitMQ之Spring重试机制</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-12-10 11:36:47 / Modified: 14:56:55" itemprop="dateCreated datePublished" datetime="2020-12-10T11:36:47+08:00">2020-12-10</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>作者：<a target="_blank" rel="noopener" href="https://home.cnblogs.com/u/ybyn/">一步一年</a></p>
-<p>出处：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/ybyn/p/13691058.html">https://www.cnblogs.com/ybyn/p/13691058.html</a></p>
-<p>消费端在处理消息过程中可能会报错，此时该如何重新处理消息呢？解决方案有以下两种。</p>
-<blockquote>
-<ul>
-<li>在redis或者数据库中记录重试次数，达到最大重试次数以后消息进入死信队列或者其他队列，再单独针对这些消息进行处理；</li>
-<li>使用spring-rabbit中自带的retry功能；</li>
-</ul>
-</blockquote>
-<p>第一种方案我们就不再详细说了，我们主要来看一下第二种方案，老规矩，先上代码：</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">rabbitmq:</span></span><br><span class="line">    <span class="attr">listener:</span></span><br><span class="line">      <span class="attr">simple:</span></span><br><span class="line">        <span class="attr">acknowledge-mode:</span> <span class="string">auto</span>  <span class="comment"># 自动ack</span></span><br><span class="line">        <span class="attr">retry:</span></span><br><span class="line">          <span class="attr">enabled:</span> <span class="literal">true</span></span><br><span class="line">          <span class="attr">max-attempts:</span> <span class="number">5</span></span><br><span class="line">          <span class="attr">max-interval:</span> <span class="number">10000</span>   <span class="comment"># 重试最大间隔时间</span></span><br><span class="line">          <span class="attr">initial-interval:</span> <span class="number">2000</span>  <span class="comment"># 重试初始间隔时间</span></span><br><span class="line">          <span class="attr">multiplier:</span> <span class="number">2</span> <span class="comment"># 间隔时间乘子，间隔时间*乘子=下一次的间隔时间，最大不能超过设置的最大间隔时间</span></span><br></pre></td></tr></table></figure>
-
-<p>此时我们的消费者代码如下所示：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitHandler</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = &#123;&quot;$&#123;platform.queue-name&#125;&quot;&#125;,concurrency = &quot;1&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">msgConsumer</span><span class="params">(String msg, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">		log.info(<span class="string">&quot;接收到消息&gt;&gt;&gt;&#123;&#125;&quot;</span>,msg);</span><br><span class="line">		<span class="keyword">int</span> temp = <span class="number">10</span>/<span class="number">0</span>;</span><br><span class="line">		log.info(<span class="string">&quot;消息&#123;&#125;消费成功&quot;</span>,msg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此时启动程序，发送消息后可以看到控制台输出内容如下：</p>
-<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142316393-1426680370.png" alt="img"></p>
-<p>可以看到重试次数是5次（包含自身消费的一次），重试时间依次是2s，4s，8s，10s（上一次间隔时间*间隔时间乘子），最后一次重试时间理论上是16s，但是由于设置了最大间隔时间是10s，因此最后一次间隔时间只能是10s，和配置相符合。</p>
-<blockquote>
-<p>注意：</p>
-<p>重试并不是RabbitMQ重新发送了消息，仅仅是消费者内部进行的重试，换句话说就是重试跟mq没有任何关系；</p>
-<p>因此上述消费者代码不能添加try{}catch(){}，一旦捕获了异常，在自动ack模式下，就相当于消息正确处理了，消息直接被确认掉了，不会触发重试的；</p>
-</blockquote>
-<h2 id="MessageReCoverer"><a href="#MessageReCoverer" class="headerlink" title="MessageReCoverer"></a>MessageReCoverer</h2><p>上面的例子在测试中我们还发现了一个问题，就是经过5次重试以后，控制台输出了一个异常的堆栈日志，然后队列中的数据也被ack掉了（自动ack模式），首先我们看一下这个异常日志是什么。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException: Retry Policy Exhausted</span><br></pre></td></tr></table></figure>
-
-<p>出现消息被消费掉并且出现上述异常的原因是因为在构建SimpleRabbitListenerContainerFactoryConfigurer类时使用了MessageRecoverer接口，这个接口有一个cover方法，用来实现重试完成之后对消息的处理，源码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ListenerRetry retryConfig = configuration.getRetry();</span><br><span class="line"><span class="keyword">if</span> (retryConfig.isEnabled()) &#123;</span><br><span class="line">	RetryInterceptorBuilder&lt;?, ?&gt; builder = (retryConfig.isStateless()) ? RetryInterceptorBuilder.stateless()</span><br><span class="line">			: RetryInterceptorBuilder.stateful();</span><br><span class="line">	RetryTemplate retryTemplate = <span class="keyword">new</span> RetryTemplateFactory(<span class="keyword">this</span>.retryTemplateCustomizers)</span><br><span class="line">			.createRetryTemplate(retryConfig, RabbitRetryTemplateCustomizer.Target.LISTENER);</span><br><span class="line">	builder.retryOperations(retryTemplate);</span><br><span class="line">	MessageRecoverer recoverer = (<span class="keyword">this</span>.messageRecoverer != <span class="keyword">null</span>) ? <span class="keyword">this</span>.messageRecoverer</span><br><span class="line">			: <span class="keyword">new</span> RejectAndDontRequeueRecoverer(); <span class="comment">//&lt;1&gt;</span></span><br><span class="line">	builder.recoverer(recoverer);</span><br><span class="line">	factory.setAdviceChain(builder.build());</span><br></pre></td></tr></table></figure>
-
-<p>注意看&lt;1&gt;处的代码，默认使用的是RejectAndDontRequeueRecoverer实现类，根据实现类的名字我们就可以看出来该实现类的作用就是拒绝并且不会将消息重新发回队列，我们可以看一下这个实现类的具体内容：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RejectAndDontRequeueRecoverer</span> <span class="keyword">implements</span> <span class="title">MessageRecoverer</span> </span>&#123;</span><br><span class="line">	<span class="keyword">protected</span> Log logger = LogFactory.getLog(RejectAndDontRequeueRecoverer.class); <span class="comment">// NOSONAR protected</span></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">recover</span><span class="params">(Message message, Throwable cause)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.logger.isWarnEnabled()) &#123;</span><br><span class="line">			<span class="keyword">this</span>.logger.warn(<span class="string">&quot;Retries exhausted for message &quot;</span> + message, cause);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> ListenerExecutionFailedException(<span class="string">&quot;Retry Policy Exhausted&quot;</span>,</span><br><span class="line">					<span class="keyword">new</span> AmqpRejectAndDontRequeueException(cause), message);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上述源码给出了异常的来源，但是未看到拒绝消息的代码，猜测应该是使用aop的方式实现的，此处不再继续深究。</p>
-<p>MessageRecoverer接口还有另外两个实现类，分别是<strong>RepublishMessageRecoverer</strong>和<strong>ImmediateRequeueMessageRecoverer</strong>，顾名思义就是重新发布消息和立即重新返回队列，下面我们分别测试一个这两个实现类：</p>
-<h3 id="RepublishMessageRecoverer"><a href="#RepublishMessageRecoverer" class="headerlink" title="RepublishMessageRecoverer"></a>RepublishMessageRecoverer</h3><p>先创建一个异常交换机和异常队列，并将两者进行绑定：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> DirectExchange <span class="title">errorExchange</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> DirectExchange(<span class="string">&quot;error-exchange&quot;</span>,<span class="keyword">true</span>,<span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">errorQueue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> Queue(<span class="string">&quot;error-queue&quot;</span>, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Binding <span class="title">errorBinding</span><span class="params">(Queue errorQueue, DirectExchange errorExchange)</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> BindingBuilder.bind(errorQueue).to(errorExchange).with(<span class="string">&quot;error-routing-key&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>创建RepublishMessageRecoverer：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> MessageRecoverer <span class="title">messageRecoverer</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> RepublishMessageRecoverer(rabbitTemplate,<span class="string">&quot;error-exchange&quot;</span>,<span class="string">&quot;error-routing-key&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此时启动服务，查看处理结果：</p>
-<p><a target="_blank" rel="noopener" href="https://img2020.cnblogs.com/blog/2159277/202009/2159277-20200918142342030-85649685.png"><img src="https://img2020.cnblogs.com/blog/2159277/202009/2159277-20200918142342030-85649685.png" alt="img"></a></p>
-<p>通过控制台可以看到，消息重试5次以后直接以新的routingKey发送到了配置的交换机中，此时再查看监控页面，可以看原始队列中已经没有消息了，但是配置的异常队列中存在一条消息。</p>
-<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142352326-326808881.png" alt="img"></p>
-<p>再测试一下ImmediateRequeueMessageRecoverer：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> MessageRecoverer <span class="title">messageRecoverer</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> ImmediateRequeueMessageRecoverer();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142500644-1269082311.png" alt="img"></p>
-<p>重试5次之后，返回队列，然后再重试5次，周而复始直到不抛出异常为止，这样还是会影响后续的消息消费。</p>
-<blockquote>
-<p>总结：</p>
-<p>通过上面的测试，对于重试之后仍然异常的消息，可以采用RepublishMessageRecoverer，将消息发送到其他的队列中，再专门针对新的队列进行处理。</p>
-</blockquote>
-<h2 id="死信队列"><a href="#死信队列" class="headerlink" title="死信队列"></a>死信队列</h2><p>除了可以采用上述RepublishMessageRecoverer，还可以采用死信队列的方式处理重试失败的消息。</p>
-<p>首先创建死信交换机、死信队列以及两者的绑定</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信交换机</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> DirectExchange <span class="title">dlxExchange</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> DirectExchange(dlxExchangeName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信队列</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">dlxQueue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> Queue(dlxQueueName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信队列绑定死信交换机</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> dlxQueue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> dlxExchange</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Binding <span class="title">dlcBinding</span><span class="params">(Queue dlxQueue, DirectExchange dlxExchange)</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> BindingBuilder.bind(dlxQueue).to(dlxExchange).with(dlxRoutingKey);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>业务队列的创建需要做一些修改，添加死信交换机以及死信路由键的配置</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 业务队列</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">queue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	Map&lt;String,Object&gt; params = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">	params.put(<span class="string">&quot;x-dead-letter-exchange&quot;</span>,dlxExchangeName);<span class="comment">//声明当前队列绑定的死信交换机</span></span><br><span class="line">	params.put(<span class="string">&quot;x-dead-letter-routing-key&quot;</span>,dlxRoutingKey);<span class="comment">//声明当前队列的死信路由键</span></span><br><span class="line">	<span class="keyword">return</span> QueueBuilder.durable(queueName).withArguments(params).build();</span><br><span class="line">    <span class="comment">//return new Queue(queueName,true);</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此时启动服务，可以看到同时创建了业务队列以及死信队列</p>
-<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142520353-1806232438.png" alt="img"></p>
-<p>在业务队列上出现了DLX以及DLK的标识，标识已经绑定了死信交换机以及死信路由键，此时调用生产者发送消息，消费者在重试5次后，由于MessageCover默认的实现类是RejectAndDontRequeueRecoverer，也就是requeue=false，又因为业务队列绑定了死信队列，因此消息会从业务队列中删除，同时发送到死信队列中。</p>
-<blockquote>
-<p>注意：</p>
-<p>如果ack模式是手动ack，那么需要调用channe.nack方法，同时设置requeue=false才会将异常消息发送到死信队列中</p>
-</blockquote>
-<h2 id="retry使用场景"><a href="#retry使用场景" class="headerlink" title="retry使用场景"></a>retry使用场景</h2><p>上面说了什么是重试，以及如何解决重试造成的数据丢失，那么怎么来选择重试的使用场景呢？</p>
-<p>是否是消费者只要发生异常就要去重试呢？其实不然，假设下面的两个场景：</p>
-<ul>
-<li>http下载视频或者图片或者调用第三方接口</li>
-<li>空指针异常或者类型转换异常（其他的受检查的运行时异常）</li>
-</ul>
-<p>很显然，第一种情况有重试的意义，第二种没有。</p>
-<p>对于第一种情况，由于网络波动等原因造成请求失败，重试是有意义的；</p>
-<p>对于第二种情况，需要修改代码才能解决的问题，重试也没有意义，需要的是记录日志以及人工处理或者轮询任务的方式去处理。</p>
-<h2 id="retry最佳实践"><a href="#retry最佳实践" class="headerlink" title="retry最佳实践"></a>retry最佳实践</h2><p>对于消费端异常的消息，如果在有限次重试过程中消费成功是最好的，如果有限次重试之后仍然失败的消息，不管是采用RejectAndDontRequeueRecoverer还是使用私信队列都是可以的，同时也可以采用折中的方法，先将消息从业务队列中ack掉，再将消息发送到另外的一个队列中，后续再单独处理异常数据的队列。</p>
-<p>另外，看到有人说retry只能在自动ack模式下使用，经过测试在手动ack模式下retry也是生效的，只不过不能使用catch捕获异常，即使在自动ack模式下使用catch捕获异常也是会导致不触发重试的。当然，在手动ackm模式下要记得确认消息，不管是确认消费成功还是确认消费失败，不然消息会一直处于unack状态，直到消费者进程重启或者停止。</p>
-<p>如果一定要在手动ack模式下使用retry功能，最好还是确认在有限次重试过程中可以重试成功，否则超过重试次数，又没办法执行nack，就会出现消息一直处于unack的问题，我想这也就是所说的retry只能在自动ack模式下使用的原因，测试代码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitHandler</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = &#123;&quot;$&#123;platform.queue-name&#125;&quot;&#125;,concurrency = &quot;1&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">msgConsumer</span><span class="params">(String msg, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	log.info(<span class="string">&quot;接收到消息&gt;&gt;&gt;&#123;&#125;&quot;</span>,msg);</span><br><span class="line">	<span class="keyword">if</span>(msg.indexOf(<span class="string">&quot;0&quot;</span>)&gt;-<span class="number">1</span>)&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;抛出异常&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	log.info(<span class="string">&quot;消息&#123;&#125;消费成功&quot;</span>,msg);</span><br><span class="line">	channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/09/RabbitMQ%E4%B9%8B%E6%AD%BB%E4%BF%A1%E9%98%9F%E5%88%97/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/12/09/RabbitMQ%E4%B9%8B%E6%AD%BB%E4%BF%A1%E9%98%9F%E5%88%97/" class="post-title-link" itemprop="url">RabbitMQ之死信队列</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-12-09 10:36:46" itemprop="dateCreated datePublished" datetime="2020-12-09T10:36:46+08:00">2020-12-09</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-12-10 14:54:49" itemprop="dateModified" datetime="2020-12-10T14:54:49+08:00">2020-12-10</time>
-      </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="死信交换机，死信队列"><a href="#死信交换机，死信队列" class="headerlink" title="死信交换机，死信队列"></a>死信交换机，死信队列</h2><p>DLX 全称（Dead-Letter-Exchange）,称之为死信交换器，当消息变成一个<strong>死信</strong>之后，如果这个消息所在的队列存在<strong>x-dead-letter-exchange</strong>参数，那么它会被发送到x-dead-letter-exchange对应值的交换器上，这个交换器就称之为死信交换器，与这个死信交换器绑定的队列就是死信队列。</p>
-<h2 id="延时队列"><a href="#延时队列" class="headerlink" title="延时队列"></a>延时队列</h2><p>在RabbitMQ中不存在延时队列，但是我们可以通过设置消息的过期时间和死信队列来模拟出延时队列。消费者监听死信交换器绑定的队列，而不要监听消息发送的队列。</p>
-<h2 id="死信消息"><a href="#死信消息" class="headerlink" title="死信消息"></a><strong>死信消息</strong></h2><ol>
-<li>消息被拒绝（Basic.Reject或Basic.Nack）并且设置 requeue 参数的值为 false</li>
-<li>消息过期了</li>
-<li>队列达到最大的长度(x-max-length)</li>
-</ol>
-<h2 id="消息过期"><a href="#消息过期" class="headerlink" title="消息过期"></a>消息过期</h2><ol>
-<li>创建队列的时候绑定死信参数：</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">params.put(<span class="string">&quot;x-dead-letter-exchange&quot;</span>, <span class="string">&quot;dlx-exchange&quot;</span>);</span><br><span class="line">params.put(<span class="string">&quot;x-dead-letter-routing-key&quot;</span>, <span class="string">&quot;dlK-routingKey&quot;</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> Queue(queue, <span class="keyword">true</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, params); <span class="comment">//若不存在应该是会创建Queue</span></span><br></pre></td></tr></table></figure>
-
-<ol start="2">
-<li><p>设置过期时间（TTL）</p>
-<ul>
-<li><p>设置队列中消息的过期时间（所有消息的过期时间都是一样）<strong>将消息的TTL值设置为0，意味着消息到达队列后将会立即过期不会被队列保存，除非消息能够被立即传递给消费者</strong></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">map.put(<span class="string">&quot;x-message-ttl&quot;</span>, <span class="number">5000</span>);</span><br><span class="line">channel.queueDeclare(q_name, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, map); <span class="comment">//原生jar</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>设置单个消息的过期时间（可以设置每个消息的过期时间不同）</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Spring</span></span><br><span class="line"><span class="keyword">this</span>.rabbitTemplate</span><br><span class="line">    .convertAndSend(orderStatusUpdateExchange, orderStatusUpdateKey, orderMessage, message -&gt; &#123;</span><br><span class="line">        message.getMessageProperties().setExpiration(expiration);</span><br><span class="line">        <span class="keyword">return</span> message;</span><br><span class="line">    &#125;);</span><br><span class="line"><span class="comment">//原生jar</span></span><br><span class="line">AMQP.BasicProperties properties = <span class="keyword">new</span> AMQP.BasicProperties.Builder()</span><br><span class="line">                .deliveryMode(<span class="number">2</span>)</span><br><span class="line">                .expiration(<span class="string">&quot;6000&quot;</span>) <span class="comment">//设置TTL 毫秒</span></span><br><span class="line">                .build();</span><br><span class="line">channel.basicPublish(my-exchange, routing-key, properties, <span class="string">&quot;msg&quot;</span>.getBytes());</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>设置队列过期（队列设置TTL过期后会被删除，但是不能保证实时被删除）该值决定了队列不再被使用后直到被自动删除的时长。<strong>不再使用的意思是队列没有订阅的消费者，队列最近没有被重新声明，并且在过期时间basic.get方法没有被调用</strong>。比如，在通过RabbitMQ实现RPC调用时，会生成大量的回复队列。<strong>服务器保证如果队列在最近的过期时间内没有被使用，那么该队列将会被删除。但是不保证在过期后能够以多快的速度删除</strong>。当服务器重启时，队列的租期重新开始计算。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">map.put(<span class="string">&quot;x-expires&quot;</span>, <span class="number">5000</span>);</span><br><span class="line">channel.queueDeclare(q_name, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, map);</span><br></pre></td></tr></table></figure>
-
-
-</li>
-</ul>
-</li>
-</ol>
-<h2 id="死信注意点"><a href="#死信注意点" class="headerlink" title="死信注意点"></a>死信注意点</h2><blockquote>
-<p>Caveats<br>Queues that had a per-message TTL applied to them retroactively (when they already had messages) will discard the messages when specific events occur. Only when expired messages reach the head of a queue will they actually be discarded (or dead-lettered). Consumers will not have expired messages delivered to them. Keep in mind that there can be a natural race condition between message expiration and consumer delivery, e.g. a message can expire after it was written to the socket but before it has reached a consumer.<br>When setting per-message TTL expired messages can queue up behind non-expired ones until the latter are consumed or expired. Hence resources used by such expired messages will not be freed, and they will be counted in queue statistics (e.g. the number of messages in the queue).<br>When retroactively applying a per-message TTL policy, it is recommended to have consumers online to make sure the messages are discarded quicker.<br>Given this behaviour of per-message TTL settings on existing queues, when the need to delete messages to free up resources arises, queue TTL should be used instead (or queue purging, or queue deletion).</p>
-</blockquote>
-<p><strong>注意事项</strong><br>当队列中已有消息，并设置消息的TTL，那么会追溯设置消息的有效期，当在特定情况下将会丢弃这些消息。**只有当过期消息到达队列的头部时，它们才会被真实地丢弃(或死信路由)**。消费者将不会接收到过期的消息，但是消息的传递和有效期有天然的竞争关系。比如，一个消息在被写入到socket但还未到达消费者时过期。</p>
-<p>当设置了TTL过期时间的消息，可以在未过期消息后面排队，直到后者被消费或者过期。因此，被过期消息使用的资源并不会被释放，它们也会被队列的统计记入(比如，队列中消息的数量)。</p>
-<p>当回溯地设置消息的TTL策略时，建议有消费者同时在线，可以保证消息的尽快丢弃。</p>
-<p>考虑到给已存在的队列设置消息的TTL，来实现删除消息释放资源。设置队列的TTL（或队列清空，队列删除）应该替代这种方式</p>
-<p><strong>测试</strong>：</p>
-<ol>
-<li>可以看出这次是正常发送，正常消费</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.036</span>， 消息内容：<span class="number">798</span></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.039</span>， 消息内容：<span class="number">456</span></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.039</span>， 消息内容：<span class="number">123</span></span><br><span class="line">2020-07-02 15:03:35.116  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br><span class="line">2020-07-02 15:03:39.054  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:03:44.055  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<ol start="2">
-<li>可以看出消息正常发出，但是过了10s同时被消费</li>
-</ol>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.654</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.654</span>， 消息内容：<span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.655</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.655</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.655</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.655</span>， 消息内容：<span class="number">798</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:05:55.665  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line">2020-07-02 15:05:55.666  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:05:55.666  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br></pre></td></tr></table></figure>
-
-<ol start="3">
-<li>可以看出过了5秒第一次被消费，再过5秒后后两条消息同时被消费</li>
-</ol>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.929</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.929</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.931</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.931</span>， 消息内容：<span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.931</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.931</span>， 消息内容：<span class="number">798</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:11:31.928  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:11:36.946  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line">2020-07-02 15:11:36.947  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br></pre></td></tr></table></figure>
-
-<ol start="4">
-<li>可以看出过了5秒前两条消息同时被消费，再过了5秒最后一条消息被消费</li>
-</ol>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line"><span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.818</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.818</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.821</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.821</span>， 消息内容：<span class="number">798</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.821</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.821</span>， 消息内容：<span class="number">123</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:12:32.834  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:12:32.834  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br><span class="line">2020-07-02 15:12:37.837  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br></pre></td></tr></table></figure>
-
-<p><font color="red">可以看出应该就是只有消息队列头的消息被消费后，过期的消息才会被消费。</font></p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>安装一个插件即可：<a target="_blank" rel="noopener" href="https://www.rabbitmq.com/community-plugins.html">https://www.rabbitmq.com/community-plugins.html</a> ，下载rabbitmq_delayed_message_exchange插件，然后解压放置到RabbitMQ的插件目录。接下来，进入RabbitMQ的安装目录下的sbin目录，执行下面命令让该插件生效，然后重启RabbitMQ。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq-plugins enable rabbitmq_delayed_message_exchange</span><br></pre></td></tr></table></figure>
-
-<p><strong>代码实现</strong></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DelayedRabbitMQConfig</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_QUEUE_NAME = <span class="string">&quot;delay.queue.demo.delay.queue&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_EXCHANGE_NAME = <span class="string">&quot;delay.queue.demo.delay.exchange&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_ROUTING_KEY = <span class="string">&quot;delay.queue.demo.delay.routingkey&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Queue <span class="title">immediateQueue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Queue(DELAYED_QUEUE_NAME);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> CustomExchange <span class="title">customExchange</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        Map&lt;String, Object&gt; args = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">        args.put(<span class="string">&quot;x-delayed-type&quot;</span>, <span class="string">&quot;direct&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CustomExchange(DELAYED_EXCHANGE_NAME, <span class="string">&quot;x-delayed-message&quot;</span>, <span class="keyword">true</span>, <span class="keyword">false</span>, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Binding <span class="title">bindingNotify</span><span class="params">(<span class="meta">@Qualifier(&quot;immediateQueue&quot;)</span> Queue queue,</span></span></span><br><span class="line"><span class="function"><span class="params">                                 <span class="meta">@Qualifier(&quot;customExchange&quot;)</span> CustomExchange customExchange)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> BindingBuilder.bind(queue).to(customExchange).with(DELAYED_ROUTING_KEY).noargs();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><strong>消息生产者的代码</strong></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sendDelayMsg</span><span class="params">(String msg, Integer delayTime)</span> </span>&#123;</span><br><span class="line">    rabbitTemplate.convertAndSend(DELAYED_EXCHANGE_NAME, DELAYED_ROUTING_KEY, msg, a -&gt;&#123;</span><br><span class="line">        a.getMessageProperties().setDelay(delayTime);</span><br><span class="line">        <span class="keyword">return</span> a;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><strong>消费者的代码</strong></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener(queues = DELAYED_QUEUE_NAME)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">receiveD</span><span class="params">(Message message, Channel channel)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String msg = <span class="keyword">new</span> String(message.getBody());</span><br><span class="line">    log.info(<span class="string">&quot;当前时间：&#123;&#125;,延时队列收到消息：&#123;&#125;&quot;</span>, <span class="keyword">new</span> Date().toString(), msg);</span><br><span class="line">    channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_37801313/article/details/107084076">RabbitMq 死信消息的过期时间的不同 会导致消费延时</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/mfrank/p/11260355.html">【RabbitMQ】一文带你搞定RabbitMQ延迟队列</a></p>
 
       
     </div>

@@ -209,20 +209,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">94</span>
+          <span class="site-state-item-count">96</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">20</span>
+        <span class="site-state-item-count">21</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-count">62</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -254,6 +254,278 @@
       
 
       
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/" class="post-title-link" itemprop="url">算法（五）之二叉堆</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-12-03 09:52:39" itemprop="dateCreated datePublished" datetime="2020-12-03T09:52:39+08:00">2020-12-03</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-04 09:58:54" itemprop="dateModified" datetime="2020-12-04T09:58:54+08:00">2020-12-04</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="什么是二叉堆"><a href="#什么是二叉堆" class="headerlink" title="什么是二叉堆"></a>什么是二叉堆</h2><p>二叉堆本质上是一种完全二叉树，它分为两个类型。 </p>
+<ol>
+<li><p>最大堆。 最大堆的任何一个父节点的值，都大于或等于它左、右孩子节点的值</p>
+</li>
+<li><p>最小堆。最小堆的任何一个父节点的值，都小于或等于它左、右孩子节点的值。</p>
+<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203200307460.png" alt="image-20201203200307460" style="zoom:80%;">
+
+</li>
+</ol>
+<p>二叉堆的根节点叫作<strong>堆顶</strong>。最大堆的堆顶是整个堆中的最大元素；最小堆的堆顶是整个堆中的最小元素。</p>
+<h2 id="基本操作"><a href="#基本操作" class="headerlink" title="基本操作"></a>基本操作</h2><ul>
+<li>插入节点：单一节点上浮，平均交换次数都是堆高度的一半，所以时间复杂度是O(log<del>2</del>n)</li>
+<li>删除节点：单一节点下沉，平均交换次数都是堆高度的一半，所以时间复杂度是O(log<del>2</del>n)</li>
+<li>构建二叉堆：要所有非叶子节点依次“下沉”，时间复杂度是O(n)</li>
+</ul>
+<p><strong>时间复杂度推导</strong></p>
+<p>n为节点数，level为层级</p>
+<ul>
+<li>插入和删除：f(n) = level-1; n = 2^level^-1；推导出：level = log<del>2</del>(n+1)，因此f(n)=log<del>2</del>(n+1)-1，所以时间复杂度为O(log<del>2</del>n)</li>
+<li>构建二叉堆：满二叉树堆则f(n) = 2^level-1^；n = 2^level^-1；推导出：level = log<del>2</del>(n+1)，因此f(n)=2^log(n+1)^-2=n-1,所以为O(n)</li>
+</ul>
+<h2 id="自我调整"><a href="#自我调整" class="headerlink" title="自我调整"></a>自我调整</h2><p>这几种操作都基于堆的自我调整。所谓堆的自我调整，就是把一个不符合堆性质的完全二叉树，调整成一个堆。</p>
+<ol>
+<li>插入节点 </li>
+</ol>
+<p>当二叉堆插入节点时，插入位置是完全二叉树的最后一个位置。例如插入一个新节点，值是 0。这时，新节点的父节点5比0大，显然不符合最小堆的性质。于是让新节点“上浮”，和父节点交换位置。继续用节点0和父节点3做比较，因为0小于3，则让新节点继续“上浮”。继续比较，最终新节点0“上浮”到了堆顶位置。<br><img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203105517492.png" alt="image-20201203105517492"></p>
+<ol start="2">
+<li>删除节点 </li>
+</ol>
+<p>二叉堆删除节点的过程和插入节点的过程正好相反，所删除的是处于堆顶的节点。例如删除最小堆的堆顶节点1。这时，为了继续维持完全二叉树的结构，我们把堆的最后一个节点10临时补到原本堆顶的位置。接下来，让暂处堆顶位置的节点10和它的左、右孩子进行比较，如果左、右孩子节点中最小的一个（显然是节点2）比节点10小，那么让节点10“下沉”。</p>
+<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203194844232.png" alt="image-20201203194844232">
+
+<ol start="3">
+<li>构建二叉堆</li>
+</ol>
+<p>构建二叉堆，也就是把一个无序的完全二叉树调整为二叉堆，**<font color="red">本质就是让所有 非叶子节点依次“下沉”</font>**。</p>
+<p>如下图的无序完全二叉树，找到第一个非叶子节点即10，与其子节点比较，节点6与节点10交互位置。数组方式存储，则下一个节点为节点3，与其子节点比较，节点3与节点2交互位置。下一个节点为1，与字节点比较，不用交换位置。最后一个节点为7，与其子节点比较，节点7下沉，与节点1交互位置，继续与子节点比较，子节点为6和5，最后于5节点交换位置。</p>
+<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203200122412.png" alt="image-20201203200122412" style="zoom:80%;">
+
+<h3 id="实现代码"><a href="#实现代码" class="headerlink" title="实现代码"></a>实现代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">upAdjust</span><span class="params">(<span class="keyword">int</span>[] array)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> childrenIndex = array.length-<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">int</span> parentIndex = (childrenIndex-<span class="number">1</span>)/<span class="number">2</span>;</span><br><span class="line">    <span class="comment">// temp 保存插入的叶子节点值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> temp = array[childrenIndex];</span><br><span class="line">    <span class="keyword">while</span> (childrenIndex&gt;<span class="number">0</span> &amp;&amp; temp&lt;array[parentIndex])&#123;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[childrenIndex] = array[parentIndex];</span><br><span class="line">      childrenIndex = parentIndex;</span><br><span class="line">      parentIndex = (childrenIndex-<span class="number">1</span>)/<span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[childrenIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> array  待调整的堆</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> parentIndex  要“下沉”的父节点</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> length 堆的有效大小</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">downAdjust</span><span class="params">(<span class="keyword">int</span>[] array,<span class="keyword">int</span> parentIndex,<span class="keyword">int</span> length)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> childrenIndex = <span class="number">2</span>*parentIndex+<span class="number">1</span>;</span><br><span class="line">    <span class="comment">// temp 保存父节点值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> temp = array[parentIndex];</span><br><span class="line">    <span class="keyword">while</span> (childrenIndex&lt;length)&#123;</span><br><span class="line">      <span class="comment">// 如果有右孩子，且右孩子小于左孩子的值，则定位到右孩子</span></span><br><span class="line">      <span class="keyword">if</span>(childrenIndex+<span class="number">1</span>&lt;length &amp;&amp; array[childrenIndex+<span class="number">1</span>]&lt;array[childrenIndex])&#123;</span><br><span class="line">        childrenIndex++;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 如果父节点小于任何一个孩子的值，则直接跳出</span></span><br><span class="line">      <span class="keyword">if</span>(temp&lt;array[childrenIndex])&#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[parentIndex] = array[childrenIndex];</span><br><span class="line">      parentIndex = childrenIndex;</span><br><span class="line">      childrenIndex = <span class="number">2</span>*parentIndex+<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[parentIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">buildHeapTree</span><span class="params">(<span class="keyword">int</span>[] array)</span></span>&#123;</span><br><span class="line">    <span class="comment">// 从最后一个非叶子节点开始，依次做“下沉”调整</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = (array.length-<span class="number">2</span>)/<span class="number">2</span>; i&gt;=<span class="number">0</span>; i--) &#123;</span><br><span class="line">      downAdjust(array, i, array.length);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span>[] array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">10</span>,<span class="number">0</span>&#125;;</span><br><span class="line">    upAdjust(array);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line"></span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">7</span>,<span class="number">1</span>,<span class="number">3</span>,<span class="number">10</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">6</span>,<span class="number">0</span>&#125;;</span><br><span class="line">    buildHeapTree(array);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line"></span><br><span class="line">    <span class="comment">//删除是用最后一个节点值替换要删除的节点，之后再下沉自我调整</span></span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">10</span>&#125;;</span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">10</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>&#125;;</span><br><span class="line">    downAdjust(array,<span class="number">1</span>,array.length);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="二叉堆的使用场景"><a href="#二叉堆的使用场景" class="headerlink" title="二叉堆的使用场景"></a>二叉堆的使用场景</h2><p>二叉堆是实现<strong>堆排序</strong>及<strong>优先队列</strong>的基础</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/" class="post-title-link" itemprop="url">算法（四）之树及二叉树和遍历</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-12-01 13:43:57" itemprop="dateCreated datePublished" datetime="2020-12-01T13:43:57+08:00">2020-12-01</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-03 10:42:20" itemprop="dateModified" datetime="2020-12-03T10:42:20+08:00">2020-12-03</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="树概念"><a href="#树概念" class="headerlink" title="树概念"></a>树概念</h2><p>树（tree）是n（n≥0）个节点的有限集。当n=0时，称为空树。在任意一个非空树中，有如下特点。 </p>
+<ol>
+<li>有且仅有一个特定的称为根的节点。</li>
+<li>当n&gt;1时，其余节点可分为m（m&gt;0）个互不相交的有限集，每一个集合本身又是一个树，并称为根的子树。 <img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201134605336.png" alt="image-20201201134605336" style="zoom: 33%;">
+
+</li>
+</ol>
+<p>在上图中，节点1是根节点（root）；节点5、6、7、8是树的末端，没有“孩子”，被称为叶子节点（leaf）。图中的虚线部分，是根节点1的其中一个子树。<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201134818417.png" alt="image-20201201134818417" style="zoom: 33%;"></p>
+<p>树的结构从根节点到叶子节点，分为不同的层级。从一个节点的角度来看，它的上下级和同级节点关系如下。</p>
+<p>在上图中，节点4的上一级节点，是节点4的<strong>父节点（parent）</strong>；从节点4衍生出来的节点，是节点4的<strong>孩子节点（child）</strong>；和节点4同级，由同一个父节点衍生出来的节点，是节点4的<strong>兄弟节点（sibling）</strong></p>
+<p>树的最大层级数，被称为树的高度或深度。显然，上图这个树的高度是4。</p>
+<h2 id="什么是二叉树"><a href="#什么是二叉树" class="headerlink" title="什么是二叉树"></a>什么是二叉树</h2><p>二叉树（binary tree）是树的一种特殊形式。二叉，顾名思义，这种树的每个节点最多有2个孩子节点。注意，这里是最多有2个，也可能只有1个，或者没有孩子节点<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135228229.png" alt="image-20201201135228229" style="zoom: 33%;"><br>二叉树节点的两个孩子节点，一个被称为<strong>左孩子（left child）</strong>，一个被称为<strong>右孩子（right child）</strong>。这两个孩子节点的顺序是固定的，就像人的左手就是左手，右手就是右手，不能够颠倒或混淆。</p>
+<p>二叉树还有两种特殊形式，一个叫作<strong>满二叉树</strong>，另一个叫作<strong>完全二叉树</strong></p>
+<h3 id="什么是满二叉树"><a href="#什么是满二叉树" class="headerlink" title="什么是满二叉树"></a>什么是满二叉树</h3><p>一个二叉树的所有非叶子节点都存在左右孩子，并且所有叶子节点都在同一层级上，那么这个树就是满二叉树。简单点说，满二叉树的每一个分支都是满的。一棵深度为k且有2^K^-1个节点的二叉树称为满二叉树。满二叉树每一层的结点个数都达到了最大值, 即满二叉树的第i层上有2^i-1^个节点（i&gt;=1）<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135513962.png" alt="image-20201201135513962" style="zoom:33%;"></p>
+<h3 id="什么是完全二叉树"><a href="#什么是完全二叉树" class="headerlink" title="什么是完全二叉树"></a>什么是完全二叉树</h3><p>对一个有n个节点的二叉树，按层级顺序编号，则所有节点的编号为从1到n。如果这个树所有节点和同样深度的满二叉树的编号为从1到n的节点位置相同，则这个二叉树为完全二叉树。<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135646991.png" alt="image-20201201135646991" style="zoom:33%;"><br>在上图中，二叉树编号从1到12的12个节点，和前面满二叉树编号从1到12的节点位置完全对应。因此这个树是完全二叉树。<br>完全二叉树的条件没有满二叉树那么苛刻：满二叉树要求所有分支都是满的；而完全二叉树只需保证最后一个节点之前的节点都齐全即可。满二叉树是完全二叉树的特殊形态, 即如果一棵二叉树是满二叉树, 则它必定是完全二叉树</p>
+<h3 id="二叉树存储结构"><a href="#二叉树存储结构" class="headerlink" title="二叉树存储结构"></a>二叉树存储结构</h3><p>链式存储结构。<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201140333971.png" alt="image-20201201140333971" style="zoom:25%;"></p>
+<ul>
+<li>存储数据的data变量 </li>
+<li>指向左孩子的left指针 </li>
+<li>指向右孩子的right指针</li>
+</ul>
+<p>数组。<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201140524048.png" alt="image-20201201140524048" style="zoom:25%;"><br>使用数组存储时，会按照层级顺序把二叉树的节点放到数组中对应的位置上。如果某一个节点的左孩子或右孩子空缺，则数组的相应位置也空出来。</p>
+<p><strong>为什么这样设计</strong><br>因为这样可以更方便地在数组中定位二叉树的孩子节点和 父节点。</p>
+<p>假设一个父节点的下标是parent，那么它的左孩子节点下标就是2×parent +1；右孩子节点下标就是2×parent + 2。<br>反过来，假设一个左孩子节点的下标是leftChild，那么它的父节点下标就是（leftChild-1）/ 2。<br>假如节点4在数组中的下标是3，节点4是节点2的左孩子，节点2的下标可以直接<br>通过计算得出。节点2的下标 = (3-1)/2 = 1 </p>
+<p>显然，对于一个稀疏的二叉树来说，用数组表示法是非常浪费空间的。</p>
+<p><strong>什么样的二叉树最适合用数组表示呢？</strong></p>
+<p>一种特殊的完全二叉树，就是用数组来存储的。</p>
+<h3 id="二叉树应用"><a href="#二叉树应用" class="headerlink" title="二叉树应用"></a>二叉树应用</h3><p>二叉树包含许多特殊的形式，每一种形式都有自己的作用，但是其最主要的应用还在于进行<strong>查找操作和维持相对顺序</strong>这两个方面。 </p>
+<h4 id="查找"><a href="#查找" class="headerlink" title="查找"></a><strong>查找</strong></h4><p>二叉树的树形结构使它很适合扮演索引的角色。 <strong>二叉查找树（binary search tree）</strong>主要作用就是进行查找操作</p>
+<p><strong>二叉查找树</strong><br>二叉查找树在二叉树的基础上增加了以下几个条件。 <font color="red"><strong>为了查找方便</strong></font>。</p>
+<ul>
+<li>如果左子树不为空，则左子树上所有节点的值均小于根节点的值 </li>
+<li>如果右子树不为空，则右子树上所有节点的值均大于根节点的值 </li>
+<li>左、右子树也都是二叉查找树<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201141125488.png" alt="image-20201201141125488" style="zoom:25%;">
+对于一个节点分布相对均衡的二叉查找树来说，如果节点总数是n，那么搜索节点的时间复杂度就是O(logn)，和树的深度是一样的。这种依靠比较大小来逐步查找的方式，和二分查找算法非常相似。 
+#### **维持相对顺序**
+二叉查找树要求左子树小于父节点，右子树大于父节点，正是这样保证了二叉树的有序性。因此二叉查找树还有另一个名字——二叉排序树（binary sort tree）。 
+
+</li>
+</ul>
+<h4 id="二叉查找树（二叉排序树）的问题"><a href="#二叉查找树（二叉排序树）的问题" class="headerlink" title="二叉查找树（二叉排序树）的问题"></a>二叉查找树（二叉排序树）的问题</h4><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201141637961.png" alt="image-20201201141637961" style="zoom:25%;">
+在根节点为10的节点情况下，插入9、8、7节点时，会出现如图的情况。查询节点的时间复杂度退化成O(n)。
+
+<h4 id="二叉树自平衡"><a href="#二叉树自平衡" class="headerlink" title="二叉树自平衡"></a>二叉树自平衡</h4><p>二叉树自平衡的方式有多种，如红黑树、AVL树、树堆等</p>
+<h3 id="二叉树的遍历"><a href="#二叉树的遍历" class="headerlink" title="二叉树的遍历"></a>二叉树的遍历</h3><p>从节点之间位置关系的角度来看，二叉树的遍历分为4种</p>
+<ul>
+<li><p><strong>前序遍历</strong>：输出顺序是根节点、左子树、右子树。</p>
+<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200256982.png" alt="image-20201201200256982" style="zoom:25%;">
+</li>
+<li><p><strong>中序遍历</strong>：输出顺序是左子树、根节点、右子树</p>
+<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200341762.png" alt="image-20201201200341762" style="zoom:25%;">
+</li>
+<li><p><strong>后序遍历</strong>：输出顺序是左子树、右子树、根节点</p>
+<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200417902.png" alt="image-20201201200417902" style="zoom:25%;">
+</li>
+<li><p>层序遍历。层级输出</p>
+<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201202112654756.png" alt="image-20201202112654756" style="zoom:25%;">
+
+</li>
+</ul>
+<p>从更宏观的角度来看，二叉树的遍历归结为两大类。</p>
+<ul>
+<li><p>深度优先遍历（前序遍历、中序遍历、后序遍历）。 所谓深度优先，顾名思义，就是偏向于纵深，“一头扎到底”的访问方式。</p>
+</li>
+<li><p>广度优先遍历（层序遍历）。就是二叉树按照从根节点到叶子节点的层次关系，一层一层横向遍历各个节点 。</p>
+<p>深度优先和广度优先这两个概念不止局限于二叉树，它们更是一种抽象的算法思想，决定了访问某些复杂数据结构的顺序。在访问树、图，或其他一些复杂数据结构时，这两个概念常常被使用到。 </p>
+</li>
+</ul>
+<h4 id="深度优先遍历"><a href="#深度优先遍历" class="headerlink" title="深度优先遍历"></a>深度优先遍历</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> TreeNode <span class="title">createTree</span><span class="params">(LinkedList list)</span> </span>&#123;</span><br><span class="line">    TreeNode treeNode = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (Objects.isNull(list) || list.isEmpty()) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    Object o = list.removeFirst();</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(o)) &#123;</span><br><span class="line">      treeNode = <span class="keyword">new</span> TreeNode();</span><br><span class="line">      treeNode.date = o;</span><br><span class="line">      treeNode.leftNode = createTree(list);</span><br><span class="line">      treeNode.rightNode = createTree(list);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> treeNode;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">preOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">preOrderForeachWithStack</span><span class="params">(TreeNode root)</span> </span>&#123;</span><br><span class="line">    Stack&lt;TreeNode&gt; stack = <span class="keyword">new</span> Stack&lt;TreeNode&gt;();</span><br><span class="line">    TreeNode treeNode = root;</span><br><span class="line">    stack.push(root);</span><br><span class="line">    <span class="keyword">while</span> (treeNode != <span class="keyword">null</span> || !stack.isEmpty()) &#123;</span><br><span class="line">      <span class="keyword">while</span> (treeNode != <span class="keyword">null</span>) &#123;</span><br><span class="line">        System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">        stack.push(treeNode.leftNode);</span><br><span class="line">        treeNode = treeNode.leftNode;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!stack.isEmpty()) &#123;</span><br><span class="line">        TreeNode pop = stack.pop();</span><br><span class="line">        <span class="keyword">if</span> (pop != <span class="keyword">null</span>) &#123;</span><br><span class="line">          treeNode = pop.rightNode;</span><br><span class="line">          stack.push(treeNode);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">inOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">postOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TreeNode</span> </span>&#123;</span><br><span class="line">    Object date;</span><br><span class="line">    TreeNode leftNode;</span><br><span class="line">    TreeNode rightNode;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    LinkedList list = <span class="keyword">new</span> LinkedList(Arrays</span><br><span class="line">        .asList(<span class="keyword">new</span> Integer[]&#123;<span class="number">3</span>, <span class="number">2</span>, <span class="number">9</span>, <span class="number">6</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">7</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">10</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">8</span>, <span class="keyword">null</span>, <span class="number">4</span>&#125;));</span><br><span class="line">    TreeNode treeNode = createTree(list);</span><br><span class="line">    preOrderForeach(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    preOrderForeachWithStack(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    inOrderForeach(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    postOrderForeach(treeNode);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="广度优先遍历"><a href="#广度优先遍历" class="headerlink" title="广度优先遍历"></a>广度优先遍历</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">levelOrderForeach</span><span class="params">(TreeNode root)</span> </span>&#123;</span><br><span class="line">  Queue&lt;TreeNode&gt; queue = <span class="keyword">new</span> LinkedList&lt;TreeNode&gt;();</span><br><span class="line">  queue.offer(root);</span><br><span class="line">  <span class="keyword">while</span> (!queue.isEmpty())&#123;</span><br><span class="line">    TreeNode treeNode = queue.poll();</span><br><span class="line">    <span class="keyword">if</span>(treeNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">      System.out.print(treeNode.date+<span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      <span class="keyword">if</span>(treeNode.leftNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">        queue.offer(treeNode.leftNode);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(treeNode.rightNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">        queue.offer(treeNode.rightNode);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
     
 
 
@@ -1206,287 +1478,6 @@
     
     <div class="post-body" itemprop="articleBody">
           
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/k8s%E5%9F%BA%E7%A1%80/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/" class="post-title-link" itemprop="url">k8s基础</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-30 13:14:55 / Modified: 18:11:32" itemprop="dateCreated datePublished" datetime="2020-11-30T13:14:55+08:00">2020-11-30</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>作者：<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab">Happy老师</a></p>
-<p>出处：<a target="_blank" rel="noopener" href="https://blog.51cto.com/happylab/2496756">https://blog.51cto.com/happylab/2496756</a></p>
-<h2 id="kubernetes简介与功能"><a href="#kubernetes简介与功能" class="headerlink" title="kubernetes简介与功能"></a>kubernetes简介与功能</h2><p>Kubernetes是google开源的一套微服务，容器化的编排引擎，提供容器话应用的自动化部署，横向扩展和管理，是google内部容器十多年实战沉淀的结晶，已战胜Swarm，Mesos成为容器编排的行业标准。</p>
-<p>三大容器编排引擎：</p>
-<ul>
-<li>Swarm Docker原生提供的容器化编排引擎，随着docker支持kubernetes逐渐废弃</li>
-<li>Mesos 结合Marathon提供容器调度编排的能力，还能提供其他framwork的调度</li>
-<li>Kubernetes 已成为容器编排引擎的唯一标准，越来越多程序支持kubernetes。</li>
-</ul>
-<p>kuberntes内置有很多非常优秀的特性使开发者专注于业务本身，其包含的功能如下：</p>
-<p><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/c23e352655b2ddd6d7e9fffd224accc9.png" alt="kubernetes入门到实战（一）初窥kubernetes全貌"></p>
-<ul>
-<li>Service discovery and load balancing，服务发现和负载均衡，通过DNS实现内部解析，service实现负载均衡</li>
-<li>Storage orchestration，存储编排，通过plungin的形式支持多种存储，如本地，nfs，ceph，公有云快存储等</li>
-<li>Automated rollouts and rollbacks，自动发布与回滚，通过匹配当前状态与目标状态一致，更新失败时可回滚</li>
-<li>Automatic bin packing，自动资源调度，可以设置pod调度的所需（requests）资源和限制资源（limits）</li>
-<li>Self-healing，内置的健康检查策略，自动发现和处理集群内的异常，更换，需重启的pod节点</li>
-<li>Secret and configuration management，密钥和配置管理，对于敏感信息如密码，账号的那个通过secret存储，应用的配置文件通过configmap存储，避免将配置文件固定在镜像中，增加容器编排的灵活性</li>
-<li>Batch execution，批处理执行，通过job和cronjob提供单次批处理任务和循环计划任务功能的实现</li>
-<li>Horizontal scaling,横向扩展功能，包含有HPA和AS，即应用的基于CPU利用率的弹性伸缩和基于平台级的弹性伸缩，如自动增加node和删除nodes节点。</li>
-</ul>
-<h2 id="kubernetes架构解析"><a href="#kubernetes架构解析" class="headerlink" title="kubernetes架构解析"></a>kubernetes架构解析</h2><p><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/9b512f2d62081a5fa35d8266f5c03a78.png" alt="kubernetes组件"></p>
-<p>kubernetes包含两种角色：master节点和node节点，master节点是集群的控制管理节点，作为整个k8s集群的大脑。</p>
-<ul>
-<li>负责集群所有接入请求(kube-apiserver)，在整个集群的入口；</li>
-<li>集群资源调度(kube-controller-scheduler)，通过watch监视pod的创建，负责将pod调度到合适的node节点；</li>
-<li>集群状态的一致性(kube-controller-manager)，通过多种控制器确保集群的一致性，包含有Node Controller，Replication Controller，Endpoints Controller等；</li>
-<li>元数据信息存储(etcd)，数据持久存储化，存储集群中包括node，pod，rc，service等数据；</li>
-</ul>
-<p>node节点是实际的工作节点，负责集群负载的实际运行，即pod运行的载体，其通常包含三个组件：Container Runtime，kubelet和kube-proxy</p>
-<ul>
-<li>Container Runtime是容器运行时，负责实现container生命周期管理，如docker，containerd，rktlet；</li>
-<li>kubelet负责镜像和pod的管理，</li>
-<li>kube-proxy是service服务实现的抽象，负责维护和转发pod的路由，实现集群内部和外部网络的访问。</li>
-</ul>
-<p>其他组件还包括：</p>
-<ul>
-<li>cloud-controller-manager，用于公有云的接入实现，提供节点管理(node)，路由管理，服务管理(LoadBalancer和Ingress)，存储管理(Volume，如云盘，NAS接入)，需要由公有云厂商实现具体的细节，kubernetes提供实现接口的接入，如腾讯云目前提供CVM的node管理，节点的弹性伸缩(AS),负载均衡的接入(CLB),存储的管理(CBS和CFS)等产品的集成；</li>
-<li>DNS组件由kube-dns或coredns实现集群内的名称解析；</li>
-<li>kubernetes-dashboard用于图形界面管理；</li>
-<li>kubectl命令行工具进行API交互；</li>
-<li>服务外部接入，通过ingress实现七层接入，由多种controller控制器组成<ul>
-<li>traefik</li>
-<li>nginx ingress controller</li>
-<li>haproxy ingress controller</li>
-<li>公有云厂商ingress controller</li>
-</ul>
-</li>
-<li>监控系统用于采集node和pod的监控数据<ul>
-<li>metric-server 核心指标监控</li>
-<li>prometheus 自定义指标监控，提供丰富功能</li>
-<li>heapster+influxdb+grafana 旧核心指标监控方案，现已废弃</li>
-</ul>
-</li>
-<li>日志采集系统，用于收集容器的业务数据,实现日志的采集，存储和展示，由EFK实现<ul>
-<li>Fluentd 日志采集</li>
-<li>ElasticSearch 日志存储+检索</li>
-<li>Kiabana 数据展示</li>
-</ul>
-</li>
-</ul>
-<h2 id="kubernetes生态"><a href="#kubernetes生态" class="headerlink" title="kubernetes生态"></a>kubernetes生态</h2><p><a target="_blank" rel="noopener" href="https://landscape.cncf.io/">https://landscape.cncf.io/</a></p>
-<h2 id="kubernetes高可用架构"><a href="#kubernetes高可用架构" class="headerlink" title="kubernetes高可用架构"></a>kubernetes高可用架构</h2><p>kubernetes高可用集群通常由3或5个节点组成高可用集群，需要保障各个节点的高可用性</p>
-<ul>
-<li>etcd 内置集群机制，保障数据持久存储</li>
-<li>kube-apiserver 无状态api服务，有负载均衡调度器做负载分发，如haproxy或nginx</li>
-<li>kube-scheduler 内置选举机制，保障调度器高可用，确保同个时刻一个leader节点工作，其他处于阻塞，防止脑裂</li>
-<li>kube-controller-manager 内置的选举机制保障控制器高可用，机制和kube-scheduler一致。<br><img src="/2020/11/30/k8s%E5%9F%BA%E7%A1%80/61235bc58859458922f5ab4f6484ed99.jpg" alt="kubernetes入门到实战（一）初窥kubernetes全貌"></li>
-</ul>
-<h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h2><ol>
-<li>kubernetes功能介绍，<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/">https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/</a></li>
-<li>kubernetes组件介绍<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/overview/components/">https://kubernetes.io/docs/concepts/overview/components/</a></li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/30/docker%E7%BD%91%E7%BB%9C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/11/30/docker%E7%BD%91%E7%BB%9C/" class="post-title-link" itemprop="url">docker网络</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2020-11-30 13:04:37 / Modified: 13:05:18" itemprop="dateCreated datePublished" datetime="2020-11-30T13:04:37+08:00">2020-11-30</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E8%BF%90%E7%BB%B4%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">运维技术</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="docker网络知识"><a href="#docker网络知识" class="headerlink" title="docker网络知识"></a>docker网络知识</h2><h3 id="docker网络类型（–network指定网络）"><a href="#docker网络类型（–network指定网络）" class="headerlink" title="docker网络类型（–network指定网络）"></a>docker网络类型（–network指定网络）</h3><ul>
-<li><p>bridge  默认连接到docker0这个网桥上</p>
-</li>
-<li><p>none 容器只能使用127.0.0.1的本机网络</p>
-</li>
-<li><p>host 与宿主机共享ip</p>
-</li>
-<li><p>link  docker run -it –name vm5 –link vm1:db1 ubuntu 创建一个容器vm5，并使用link方式连接vm1,此时的vm1的是容器名，db1是容器的别名</p>
-</li>
-<li><p>container 网络模式，必须同一个宿主机</p>
-</li>
-<li><p>自定义网络模式：</p>
-<ul>
-<li>bridge network  可以通过容器名互通，单一主机上运行一个相对小的网络，使用桥接网络</li>
-<li>overlay network  创建一个大网络，可以通过overlay 网络来实现</li>
-<li>MACVLAN network</li>
-<li>network plugin</li>
-<li>remote network</li>
-</ul>
-</li>
-<li><p>跨主机docker容器通信方案介绍（就是自定义网络下的方案，除开bridge）</p>
-<ul>
-<li><p>隧道（Overlay Networking）方案：</p>
-<ul>
-<li>  Weave：UDP广播，本机建立新的BR，通过PCAP互通。</li>
-<li>  Open vSwitch(OVS)：基于VxLAN和GRE协议，但是性能方面损失比较严重。</li>
-<li>  Flannel：UDP广播，VxLan。  </li>
-</ul>
-</li>
-<li><p>路由方案</p>
-<ul>
-<li>  Calico：基于BGP协议的路由方案，支持很细致的ACL控制，对混合云亲和度比较高。</li>
-<li>  Macvlan：从逻辑和Kernel层来看隔离性和性能最优的方案，基于二层隔离，所以需要二层路由器支持，大多数云服务商不支持，所以混合云上比较难以实现。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p><code>    隧道方案在IaaS层的网络中应用也比较多，大家共识是随着节点规模的增长复杂度会提升，而且出了网络问题跟踪起来比较麻烦，大规模集群情况下这是需要考虑的一个点。</code></p>
-<p><code>    路由方案一般是从3层或者2层实现隔离和跨主机容器互通的，出了问题也很容易排查。</code></p>
-<h5 id="bridge-模式的网络。其特点如下："><a href="#bridge-模式的网络。其特点如下：" class="headerlink" title="bridge 模式的网络。其特点如下："></a>bridge 模式的网络。其特点如下：</h5><ul>
-<li>  使用一个 linux bridge，默认为 docker0</li>
-<li>  使用 veth 对，一头在容器的网络 namespace 中，一头在 docker0 上</li>
-<li>  该模式下Docker Container不具有一个公有IP，因为宿主机的IP地址与vethpair的 IP地址不在同一个网段内</li>
-<li>  Docker采用NAT网络地址转换(Network Address Translation)方式，将容器内部的服务监听的端口与宿主机的某一个端口port 进行“绑定”，使得宿主机以外的世界可以主动将网络报文发送至容器内部</li>
-<li>  外界访问容器内的服务时，需要访问宿主机的 IP 以及宿主机的端口 port</li>
-<li>  NAT 模式由于是在三层网络上的实现手段，故肯定会影响网络的传输效率。</li>
-<li>容器拥有独立、隔离的网络栈；让容器和宿主机以外的世界通过NAT建立通信<br>  <img src="/2020/11/30/docker%E7%BD%91%E7%BB%9C/bridge_20201013104542.png" alt="输入图片描述"></li>
-</ul>
-<h5 id="主要使用的网络模式"><a href="#主要使用的网络模式" class="headerlink" title="主要使用的网络模式"></a>主要使用的网络模式</h5><ul>
-<li>Libnetwork 从Docker核心代码中分离出去，形成一个单独的库</li>
-<li>Flannel CoreOS团队针对Kubernetes设计的一个重载网络工具，它的主要思路是：预先留出一个网段，每个主机使用其中一部分，然后每个容器被分配不同的ip；让所有的容器认为大家在同一个直连的网络，底层通过UDP/VxLAN等进行报文的封装和转发</li>
-<li>Calico 是一个纯3层的数据中心网络方案，而且无缝集成像OpenStack这种IaaS云架构，能够提供可控的VM、容器、裸机之间的IP通信</li>
-</ul>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d84cdfe2ea86">详细网络知识</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/dhaiuda/article/details/82824333">docker的overlay网络</a></p>
-<h3 id="docker网络操作"><a href="#docker网络操作" class="headerlink" title="docker网络操作"></a>docker网络操作</h3><ul>
-<li>docker network ls            查看docker网卡</li>
-<li>docker network rm 网卡id    删除docker网卡</li>
-<li>docker network inspect 网卡id   查看docker网卡的相关详细信息</li>
-<li>创建网络，如下使用–subnet创建网络（用来指定ip段），–gateway（用来指定网关），my_net3为创建的名字：<br>docker network create –driver bridge –subnet 172.22.1.0/24 –gateway 172.22.1.1 my_net3</li>
-</ul>
-<h3 id="设置主机名和DNS"><a href="#设置主机名和DNS" class="headerlink" title="设置主机名和DNS"></a>设置主机名和DNS</h3><p>docker run -it –name mycon -h lion –dns=8.8.8.8 ubuntu:14.04</p>
-
       
     </div>
 

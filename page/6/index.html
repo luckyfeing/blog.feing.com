@@ -209,20 +209,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">94</span>
+          <span class="site-state-item-count">96</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">20</span>
+        <span class="site-state-item-count">21</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">60</span>
+        <span class="site-state-item-count">62</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -254,6 +254,302 @@
       
 
       
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/" class="post-title-link" itemprop="url">RabbitMQ之Spring重试机制</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2020-12-10 11:36:47 / Modified: 14:56:55" itemprop="dateCreated datePublished" datetime="2020-12-10T11:36:47+08:00">2020-12-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/MQ/" itemprop="url" rel="index"><span itemprop="name">MQ</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>作者：<a target="_blank" rel="noopener" href="https://home.cnblogs.com/u/ybyn/">一步一年</a></p>
+<p>出处：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/ybyn/p/13691058.html">https://www.cnblogs.com/ybyn/p/13691058.html</a></p>
+<p>消费端在处理消息过程中可能会报错，此时该如何重新处理消息呢？解决方案有以下两种。</p>
+<blockquote>
+<ul>
+<li>在redis或者数据库中记录重试次数，达到最大重试次数以后消息进入死信队列或者其他队列，再单独针对这些消息进行处理；</li>
+<li>使用spring-rabbit中自带的retry功能；</li>
+</ul>
+</blockquote>
+<p>第一种方案我们就不再详细说了，我们主要来看一下第二种方案，老规矩，先上代码：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">rabbitmq:</span></span><br><span class="line">    <span class="attr">listener:</span></span><br><span class="line">      <span class="attr">simple:</span></span><br><span class="line">        <span class="attr">acknowledge-mode:</span> <span class="string">auto</span>  <span class="comment"># 自动ack</span></span><br><span class="line">        <span class="attr">retry:</span></span><br><span class="line">          <span class="attr">enabled:</span> <span class="literal">true</span></span><br><span class="line">          <span class="attr">max-attempts:</span> <span class="number">5</span></span><br><span class="line">          <span class="attr">max-interval:</span> <span class="number">10000</span>   <span class="comment"># 重试最大间隔时间</span></span><br><span class="line">          <span class="attr">initial-interval:</span> <span class="number">2000</span>  <span class="comment"># 重试初始间隔时间</span></span><br><span class="line">          <span class="attr">multiplier:</span> <span class="number">2</span> <span class="comment"># 间隔时间乘子，间隔时间*乘子=下一次的间隔时间，最大不能超过设置的最大间隔时间</span></span><br></pre></td></tr></table></figure>
+
+<p>此时我们的消费者代码如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitHandler</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = &#123;&quot;$&#123;platform.queue-name&#125;&quot;&#125;,concurrency = &quot;1&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">msgConsumer</span><span class="params">(String msg, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">		log.info(<span class="string">&quot;接收到消息&gt;&gt;&gt;&#123;&#125;&quot;</span>,msg);</span><br><span class="line">		<span class="keyword">int</span> temp = <span class="number">10</span>/<span class="number">0</span>;</span><br><span class="line">		log.info(<span class="string">&quot;消息&#123;&#125;消费成功&quot;</span>,msg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时启动程序，发送消息后可以看到控制台输出内容如下：</p>
+<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142316393-1426680370.png" alt="img"></p>
+<p>可以看到重试次数是5次（包含自身消费的一次），重试时间依次是2s，4s，8s，10s（上一次间隔时间*间隔时间乘子），最后一次重试时间理论上是16s，但是由于设置了最大间隔时间是10s，因此最后一次间隔时间只能是10s，和配置相符合。</p>
+<blockquote>
+<p>注意：</p>
+<p>重试并不是RabbitMQ重新发送了消息，仅仅是消费者内部进行的重试，换句话说就是重试跟mq没有任何关系；</p>
+<p>因此上述消费者代码不能添加try{}catch(){}，一旦捕获了异常，在自动ack模式下，就相当于消息正确处理了，消息直接被确认掉了，不会触发重试的；</p>
+</blockquote>
+<h2 id="MessageReCoverer"><a href="#MessageReCoverer" class="headerlink" title="MessageReCoverer"></a>MessageReCoverer</h2><p>上面的例子在测试中我们还发现了一个问题，就是经过5次重试以后，控制台输出了一个异常的堆栈日志，然后队列中的数据也被ack掉了（自动ack模式），首先我们看一下这个异常日志是什么。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException: Retry Policy Exhausted</span><br></pre></td></tr></table></figure>
+
+<p>出现消息被消费掉并且出现上述异常的原因是因为在构建SimpleRabbitListenerContainerFactoryConfigurer类时使用了MessageRecoverer接口，这个接口有一个cover方法，用来实现重试完成之后对消息的处理，源码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ListenerRetry retryConfig = configuration.getRetry();</span><br><span class="line"><span class="keyword">if</span> (retryConfig.isEnabled()) &#123;</span><br><span class="line">	RetryInterceptorBuilder&lt;?, ?&gt; builder = (retryConfig.isStateless()) ? RetryInterceptorBuilder.stateless()</span><br><span class="line">			: RetryInterceptorBuilder.stateful();</span><br><span class="line">	RetryTemplate retryTemplate = <span class="keyword">new</span> RetryTemplateFactory(<span class="keyword">this</span>.retryTemplateCustomizers)</span><br><span class="line">			.createRetryTemplate(retryConfig, RabbitRetryTemplateCustomizer.Target.LISTENER);</span><br><span class="line">	builder.retryOperations(retryTemplate);</span><br><span class="line">	MessageRecoverer recoverer = (<span class="keyword">this</span>.messageRecoverer != <span class="keyword">null</span>) ? <span class="keyword">this</span>.messageRecoverer</span><br><span class="line">			: <span class="keyword">new</span> RejectAndDontRequeueRecoverer(); <span class="comment">//&lt;1&gt;</span></span><br><span class="line">	builder.recoverer(recoverer);</span><br><span class="line">	factory.setAdviceChain(builder.build());</span><br></pre></td></tr></table></figure>
+
+<p>注意看&lt;1&gt;处的代码，默认使用的是RejectAndDontRequeueRecoverer实现类，根据实现类的名字我们就可以看出来该实现类的作用就是拒绝并且不会将消息重新发回队列，我们可以看一下这个实现类的具体内容：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RejectAndDontRequeueRecoverer</span> <span class="keyword">implements</span> <span class="title">MessageRecoverer</span> </span>&#123;</span><br><span class="line">	<span class="keyword">protected</span> Log logger = LogFactory.getLog(RejectAndDontRequeueRecoverer.class); <span class="comment">// NOSONAR protected</span></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">recover</span><span class="params">(Message message, Throwable cause)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.logger.isWarnEnabled()) &#123;</span><br><span class="line">			<span class="keyword">this</span>.logger.warn(<span class="string">&quot;Retries exhausted for message &quot;</span> + message, cause);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> ListenerExecutionFailedException(<span class="string">&quot;Retry Policy Exhausted&quot;</span>,</span><br><span class="line">					<span class="keyword">new</span> AmqpRejectAndDontRequeueException(cause), message);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述源码给出了异常的来源，但是未看到拒绝消息的代码，猜测应该是使用aop的方式实现的，此处不再继续深究。</p>
+<p>MessageRecoverer接口还有另外两个实现类，分别是<strong>RepublishMessageRecoverer</strong>和<strong>ImmediateRequeueMessageRecoverer</strong>，顾名思义就是重新发布消息和立即重新返回队列，下面我们分别测试一个这两个实现类：</p>
+<h3 id="RepublishMessageRecoverer"><a href="#RepublishMessageRecoverer" class="headerlink" title="RepublishMessageRecoverer"></a>RepublishMessageRecoverer</h3><p>先创建一个异常交换机和异常队列，并将两者进行绑定：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> DirectExchange <span class="title">errorExchange</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> DirectExchange(<span class="string">&quot;error-exchange&quot;</span>,<span class="keyword">true</span>,<span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">errorQueue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> Queue(<span class="string">&quot;error-queue&quot;</span>, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Binding <span class="title">errorBinding</span><span class="params">(Queue errorQueue, DirectExchange errorExchange)</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> BindingBuilder.bind(errorQueue).to(errorExchange).with(<span class="string">&quot;error-routing-key&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建RepublishMessageRecoverer：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> MessageRecoverer <span class="title">messageRecoverer</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> RepublishMessageRecoverer(rabbitTemplate,<span class="string">&quot;error-exchange&quot;</span>,<span class="string">&quot;error-routing-key&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时启动服务，查看处理结果：</p>
+<p><a target="_blank" rel="noopener" href="https://img2020.cnblogs.com/blog/2159277/202009/2159277-20200918142342030-85649685.png"><img src="https://img2020.cnblogs.com/blog/2159277/202009/2159277-20200918142342030-85649685.png" alt="img"></a></p>
+<p>通过控制台可以看到，消息重试5次以后直接以新的routingKey发送到了配置的交换机中，此时再查看监控页面，可以看原始队列中已经没有消息了，但是配置的异常队列中存在一条消息。</p>
+<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142352326-326808881.png" alt="img"></p>
+<p>再测试一下ImmediateRequeueMessageRecoverer：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> MessageRecoverer <span class="title">messageRecoverer</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> ImmediateRequeueMessageRecoverer();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142500644-1269082311.png" alt="img"></p>
+<p>重试5次之后，返回队列，然后再重试5次，周而复始直到不抛出异常为止，这样还是会影响后续的消息消费。</p>
+<blockquote>
+<p>总结：</p>
+<p>通过上面的测试，对于重试之后仍然异常的消息，可以采用RepublishMessageRecoverer，将消息发送到其他的队列中，再专门针对新的队列进行处理。</p>
+</blockquote>
+<h2 id="死信队列"><a href="#死信队列" class="headerlink" title="死信队列"></a>死信队列</h2><p>除了可以采用上述RepublishMessageRecoverer，还可以采用死信队列的方式处理重试失败的消息。</p>
+<p>首先创建死信交换机、死信队列以及两者的绑定</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信交换机</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> DirectExchange <span class="title">dlxExchange</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> DirectExchange(dlxExchangeName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信队列</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">dlxQueue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">new</span> Queue(dlxQueueName);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 死信队列绑定死信交换机</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> dlxQueue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> dlxExchange</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Binding <span class="title">dlcBinding</span><span class="params">(Queue dlxQueue, DirectExchange dlxExchange)</span></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> BindingBuilder.bind(dlxQueue).to(dlxExchange).with(dlxRoutingKey);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>业务队列的创建需要做一些修改，添加死信交换机以及死信路由键的配置</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 业务队列</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Queue <span class="title">queue</span><span class="params">()</span></span>&#123;</span><br><span class="line">	Map&lt;String,Object&gt; params = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">	params.put(<span class="string">&quot;x-dead-letter-exchange&quot;</span>,dlxExchangeName);<span class="comment">//声明当前队列绑定的死信交换机</span></span><br><span class="line">	params.put(<span class="string">&quot;x-dead-letter-routing-key&quot;</span>,dlxRoutingKey);<span class="comment">//声明当前队列的死信路由键</span></span><br><span class="line">	<span class="keyword">return</span> QueueBuilder.durable(queueName).withArguments(params).build();</span><br><span class="line">    <span class="comment">//return new Queue(queueName,true);</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时启动服务，可以看到同时创建了业务队列以及死信队列</p>
+<p><img src="/2020/12/10/RabbitMQ%E4%B9%8BSpring%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/2159277-20200918142520353-1806232438.png" alt="img"></p>
+<p>在业务队列上出现了DLX以及DLK的标识，标识已经绑定了死信交换机以及死信路由键，此时调用生产者发送消息，消费者在重试5次后，由于MessageCover默认的实现类是RejectAndDontRequeueRecoverer，也就是requeue=false，又因为业务队列绑定了死信队列，因此消息会从业务队列中删除，同时发送到死信队列中。</p>
+<blockquote>
+<p>注意：</p>
+<p>如果ack模式是手动ack，那么需要调用channe.nack方法，同时设置requeue=false才会将异常消息发送到死信队列中</p>
+</blockquote>
+<h2 id="retry使用场景"><a href="#retry使用场景" class="headerlink" title="retry使用场景"></a>retry使用场景</h2><p>上面说了什么是重试，以及如何解决重试造成的数据丢失，那么怎么来选择重试的使用场景呢？</p>
+<p>是否是消费者只要发生异常就要去重试呢？其实不然，假设下面的两个场景：</p>
+<ul>
+<li>http下载视频或者图片或者调用第三方接口</li>
+<li>空指针异常或者类型转换异常（其他的受检查的运行时异常）</li>
+</ul>
+<p>很显然，第一种情况有重试的意义，第二种没有。</p>
+<p>对于第一种情况，由于网络波动等原因造成请求失败，重试是有意义的；</p>
+<p>对于第二种情况，需要修改代码才能解决的问题，重试也没有意义，需要的是记录日志以及人工处理或者轮询任务的方式去处理。</p>
+<h2 id="retry最佳实践"><a href="#retry最佳实践" class="headerlink" title="retry最佳实践"></a>retry最佳实践</h2><p>对于消费端异常的消息，如果在有限次重试过程中消费成功是最好的，如果有限次重试之后仍然失败的消息，不管是采用RejectAndDontRequeueRecoverer还是使用私信队列都是可以的，同时也可以采用折中的方法，先将消息从业务队列中ack掉，再将消息发送到另外的一个队列中，后续再单独处理异常数据的队列。</p>
+<p>另外，看到有人说retry只能在自动ack模式下使用，经过测试在手动ack模式下retry也是生效的，只不过不能使用catch捕获异常，即使在自动ack模式下使用catch捕获异常也是会导致不触发重试的。当然，在手动ackm模式下要记得确认消息，不管是确认消费成功还是确认消费失败，不然消息会一直处于unack状态，直到消费者进程重启或者停止。</p>
+<p>如果一定要在手动ack模式下使用retry功能，最好还是确认在有限次重试过程中可以重试成功，否则超过重试次数，又没办法执行nack，就会出现消息一直处于unack的问题，我想这也就是所说的retry只能在自动ack模式下使用的原因，测试代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitHandler</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = &#123;&quot;$&#123;platform.queue-name&#125;&quot;&#125;,concurrency = &quot;1&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">msgConsumer</span><span class="params">(String msg, Channel channel, Message message)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	log.info(<span class="string">&quot;接收到消息&gt;&gt;&gt;&#123;&#125;&quot;</span>,msg);</span><br><span class="line">	<span class="keyword">if</span>(msg.indexOf(<span class="string">&quot;0&quot;</span>)&gt;-<span class="number">1</span>)&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">&quot;抛出异常&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	log.info(<span class="string">&quot;消息&#123;&#125;消费成功&quot;</span>,msg);</span><br><span class="line">	channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/09/RabbitMQ%E4%B9%8B%E6%AD%BB%E4%BF%A1%E9%98%9F%E5%88%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/12/09/RabbitMQ%E4%B9%8B%E6%AD%BB%E4%BF%A1%E9%98%9F%E5%88%97/" class="post-title-link" itemprop="url">RabbitMQ之死信队列</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-12-09 10:36:46" itemprop="dateCreated datePublished" datetime="2020-12-09T10:36:46+08:00">2020-12-09</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2020-12-10 14:54:49" itemprop="dateModified" datetime="2020-12-10T14:54:49+08:00">2020-12-10</time>
+      </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="死信交换机，死信队列"><a href="#死信交换机，死信队列" class="headerlink" title="死信交换机，死信队列"></a>死信交换机，死信队列</h2><p>DLX 全称（Dead-Letter-Exchange）,称之为死信交换器，当消息变成一个<strong>死信</strong>之后，如果这个消息所在的队列存在<strong>x-dead-letter-exchange</strong>参数，那么它会被发送到x-dead-letter-exchange对应值的交换器上，这个交换器就称之为死信交换器，与这个死信交换器绑定的队列就是死信队列。</p>
+<h2 id="延时队列"><a href="#延时队列" class="headerlink" title="延时队列"></a>延时队列</h2><p>在RabbitMQ中不存在延时队列，但是我们可以通过设置消息的过期时间和死信队列来模拟出延时队列。消费者监听死信交换器绑定的队列，而不要监听消息发送的队列。</p>
+<h2 id="死信消息"><a href="#死信消息" class="headerlink" title="死信消息"></a><strong>死信消息</strong></h2><ol>
+<li>消息被拒绝（Basic.Reject或Basic.Nack）并且设置 requeue 参数的值为 false</li>
+<li>消息过期了</li>
+<li>队列达到最大的长度(x-max-length)</li>
+</ol>
+<h2 id="消息过期"><a href="#消息过期" class="headerlink" title="消息过期"></a>消息过期</h2><ol>
+<li>创建队列的时候绑定死信参数：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">params.put(<span class="string">&quot;x-dead-letter-exchange&quot;</span>, <span class="string">&quot;dlx-exchange&quot;</span>);</span><br><span class="line">params.put(<span class="string">&quot;x-dead-letter-routing-key&quot;</span>, <span class="string">&quot;dlK-routingKey&quot;</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> Queue(queue, <span class="keyword">true</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, params); <span class="comment">//若不存在应该是会创建Queue</span></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><p>设置过期时间（TTL）</p>
+<ul>
+<li><p>设置队列中消息的过期时间（所有消息的过期时间都是一样）<strong>将消息的TTL值设置为0，意味着消息到达队列后将会立即过期不会被队列保存，除非消息能够被立即传递给消费者</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">map.put(<span class="string">&quot;x-message-ttl&quot;</span>, <span class="number">5000</span>);</span><br><span class="line">channel.queueDeclare(q_name, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, map); <span class="comment">//原生jar</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置单个消息的过期时间（可以设置每个消息的过期时间不同）</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Spring</span></span><br><span class="line"><span class="keyword">this</span>.rabbitTemplate</span><br><span class="line">    .convertAndSend(orderStatusUpdateExchange, orderStatusUpdateKey, orderMessage, message -&gt; &#123;</span><br><span class="line">        message.getMessageProperties().setExpiration(expiration);</span><br><span class="line">        <span class="keyword">return</span> message;</span><br><span class="line">    &#125;);</span><br><span class="line"><span class="comment">//原生jar</span></span><br><span class="line">AMQP.BasicProperties properties = <span class="keyword">new</span> AMQP.BasicProperties.Builder()</span><br><span class="line">                .deliveryMode(<span class="number">2</span>)</span><br><span class="line">                .expiration(<span class="string">&quot;6000&quot;</span>) <span class="comment">//设置TTL 毫秒</span></span><br><span class="line">                .build();</span><br><span class="line">channel.basicPublish(my-exchange, routing-key, properties, <span class="string">&quot;msg&quot;</span>.getBytes());</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置队列过期（队列设置TTL过期后会被删除，但是不能保证实时被删除）该值决定了队列不再被使用后直到被自动删除的时长。<strong>不再使用的意思是队列没有订阅的消费者，队列最近没有被重新声明，并且在过期时间basic.get方法没有被调用</strong>。比如，在通过RabbitMQ实现RPC调用时，会生成大量的回复队列。<strong>服务器保证如果队列在最近的过期时间内没有被使用，那么该队列将会被删除。但是不保证在过期后能够以多快的速度删除</strong>。当服务器重启时，队列的租期重新开始计算。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Object&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">map.put(<span class="string">&quot;x-expires&quot;</span>, <span class="number">5000</span>);</span><br><span class="line">channel.queueDeclare(q_name, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, map);</span><br></pre></td></tr></table></figure>
+
+
+</li>
+</ul>
+</li>
+</ol>
+<h2 id="死信注意点"><a href="#死信注意点" class="headerlink" title="死信注意点"></a>死信注意点</h2><blockquote>
+<p>Caveats<br>Queues that had a per-message TTL applied to them retroactively (when they already had messages) will discard the messages when specific events occur. Only when expired messages reach the head of a queue will they actually be discarded (or dead-lettered). Consumers will not have expired messages delivered to them. Keep in mind that there can be a natural race condition between message expiration and consumer delivery, e.g. a message can expire after it was written to the socket but before it has reached a consumer.<br>When setting per-message TTL expired messages can queue up behind non-expired ones until the latter are consumed or expired. Hence resources used by such expired messages will not be freed, and they will be counted in queue statistics (e.g. the number of messages in the queue).<br>When retroactively applying a per-message TTL policy, it is recommended to have consumers online to make sure the messages are discarded quicker.<br>Given this behaviour of per-message TTL settings on existing queues, when the need to delete messages to free up resources arises, queue TTL should be used instead (or queue purging, or queue deletion).</p>
+</blockquote>
+<p><strong>注意事项</strong><br>当队列中已有消息，并设置消息的TTL，那么会追溯设置消息的有效期，当在特定情况下将会丢弃这些消息。**只有当过期消息到达队列的头部时，它们才会被真实地丢弃(或死信路由)**。消费者将不会接收到过期的消息，但是消息的传递和有效期有天然的竞争关系。比如，一个消息在被写入到socket但还未到达消费者时过期。</p>
+<p>当设置了TTL过期时间的消息，可以在未过期消息后面排队，直到后者被消费或者过期。因此，被过期消息使用的资源并不会被释放，它们也会被队列的统计记入(比如，队列中消息的数量)。</p>
+<p>当回溯地设置消息的TTL策略时，建议有消费者同时在线，可以保证消息的尽快丢弃。</p>
+<p>考虑到给已存在的队列设置消息的TTL，来实现删除消息释放资源。设置队列的TTL（或队列清空，队列删除）应该替代这种方式</p>
+<p><strong>测试</strong>：</p>
+<ol>
+<li>可以看出这次是正常发送，正常消费</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.036</span>， 消息内容：<span class="number">798</span></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.039</span>， 消息内容：<span class="number">456</span></span><br><span class="line">消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">03</span>:<span class="number">34.039</span>， 消息内容：<span class="number">123</span></span><br><span class="line">2020-07-02 15:03:35.116  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br><span class="line">2020-07-02 15:03:39.054  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:03:44.055  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>可以看出消息正常发出，但是过了10s同时被消费</li>
+</ol>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.654</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.654</span>， 消息内容：<span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.655</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.655</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">05</span>:<span class="number">45.655</span>  INFO <span class="number">132</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">05</span>:<span class="number">45.655</span>， 消息内容：<span class="number">798</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:05:55.665  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line">2020-07-02 15:05:55.666  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:05:55.666  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>可以看出过了5秒第一次被消费，再过5秒后后两条消息同时被消费</li>
+</ol>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.929</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.929</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.931</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.931</span>， 消息内容：<span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">11</span>:<span class="number">26.931</span>  INFO <span class="number">11156</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">11</span>:<span class="number">26.931</span>， 消息内容：<span class="number">798</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:11:31.928  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:11:36.946  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br><span class="line">2020-07-02 15:11:36.947  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>可以看出过了5秒前两条消息同时被消费，再过了5秒最后一条消息被消费</li>
+</ol>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;456&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">5</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;798&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">1</span> *<span class="number">1000</span>);</span><br><span class="line">rabbitMqSender.sendMsg(<span class="string">&quot;123&quot;</span>, RabbitMqConfig.EXCHANGE_QUESTION_EXPIRE_DL, RabbitMqConfig.ROUTINGKEY_QUESTION_EXPIRE_DL, <span class="number">10</span> *<span class="number">1000</span>);</span><br><span class="line"><span class="number">123</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.818</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.818</span>， 消息内容：<span class="number">456</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.821</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.821</span>， 消息内容：<span class="number">798</span></span><br><span class="line"><span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">27.821</span>  INFO <span class="number">10400</span> --- [main] com.example.demo.sender.RabbitMqSender   : 消息发送时间：<span class="number">2020</span>-<span class="number">07</span>-<span class="number">02</span>T15:<span class="number">12</span>:<span class="number">27.821</span>， 消息内容：<span class="number">123</span></span><br><span class="line"></span><br><span class="line">2020-07-02 15:12:32.834  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:456 </span><br><span class="line">2020-07-02 15:12:32.834  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:798 </span><br><span class="line">2020-07-02 15:12:37.837  INFO 15856 --- [ntContainer#0-1] c.e.demo.listener.RabbitMqReceiver : received msg:123 </span><br></pre></td></tr></table></figure>
+
+<p><font color="red">可以看出应该就是只有消息队列头的消息被消费后，过期的消息才会被消费。</font></p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>安装一个插件即可：<a target="_blank" rel="noopener" href="https://www.rabbitmq.com/community-plugins.html">https://www.rabbitmq.com/community-plugins.html</a> ，下载rabbitmq_delayed_message_exchange插件，然后解压放置到RabbitMQ的插件目录。接下来，进入RabbitMQ的安装目录下的sbin目录，执行下面命令让该插件生效，然后重启RabbitMQ。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq-plugins enable rabbitmq_delayed_message_exchange</span><br></pre></td></tr></table></figure>
+
+<p><strong>代码实现</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DelayedRabbitMQConfig</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_QUEUE_NAME = <span class="string">&quot;delay.queue.demo.delay.queue&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_EXCHANGE_NAME = <span class="string">&quot;delay.queue.demo.delay.exchange&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DELAYED_ROUTING_KEY = <span class="string">&quot;delay.queue.demo.delay.routingkey&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Queue <span class="title">immediateQueue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Queue(DELAYED_QUEUE_NAME);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> CustomExchange <span class="title">customExchange</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        Map&lt;String, Object&gt; args = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">        args.put(<span class="string">&quot;x-delayed-type&quot;</span>, <span class="string">&quot;direct&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CustomExchange(DELAYED_EXCHANGE_NAME, <span class="string">&quot;x-delayed-message&quot;</span>, <span class="keyword">true</span>, <span class="keyword">false</span>, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Binding <span class="title">bindingNotify</span><span class="params">(<span class="meta">@Qualifier(&quot;immediateQueue&quot;)</span> Queue queue,</span></span></span><br><span class="line"><span class="function"><span class="params">                                 <span class="meta">@Qualifier(&quot;customExchange&quot;)</span> CustomExchange customExchange)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> BindingBuilder.bind(queue).to(customExchange).with(DELAYED_ROUTING_KEY).noargs();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>消息生产者的代码</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sendDelayMsg</span><span class="params">(String msg, Integer delayTime)</span> </span>&#123;</span><br><span class="line">    rabbitTemplate.convertAndSend(DELAYED_EXCHANGE_NAME, DELAYED_ROUTING_KEY, msg, a -&gt;&#123;</span><br><span class="line">        a.getMessageProperties().setDelay(delayTime);</span><br><span class="line">        <span class="keyword">return</span> a;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>消费者的代码</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener(queues = DELAYED_QUEUE_NAME)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">receiveD</span><span class="params">(Message message, Channel channel)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String msg = <span class="keyword">new</span> String(message.getBody());</span><br><span class="line">    log.info(<span class="string">&quot;当前时间：&#123;&#125;,延时队列收到消息：&#123;&#125;&quot;</span>, <span class="keyword">new</span> Date().toString(), msg);</span><br><span class="line">    channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_37801313/article/details/107084076">RabbitMq 死信消息的过期时间的不同 会导致消费延时</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/mfrank/p/11260355.html">【RabbitMQ】一文带你搞定RabbitMQ延迟队列</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
     
 
 
@@ -1079,278 +1375,6 @@
 <p><strong>二叉堆的时间复杂度</strong>：</p>
 <p>插入和删除操作都是O(logn)，构建二叉堆的时间复杂度为O(n)</p>
 <h2 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span>[] array;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">int</span> size;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">PriorityQueue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//队列初始长度为</span></span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">32</span>];</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * 入队 * <span class="doctag">@param</span> key 入队元素</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">enQueue</span><span class="params">(<span class="keyword">int</span> key)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//队列长度超出范围，扩容</span></span><br><span class="line">    <span class="keyword">if</span> (size &gt;= array.length) &#123;</span><br><span class="line">      resize();</span><br><span class="line">    &#125;</span><br><span class="line">    array[size++] = key;</span><br><span class="line">    upAdjust();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * 出队</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">deQueue</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (size &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> Exception(<span class="string">&quot;the queue is empty !&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//获取堆顶元素</span></span><br><span class="line">    <span class="keyword">int</span> head = array[<span class="number">0</span>];</span><br><span class="line">    <span class="comment">// 让最后一个元素移动到堆顶</span></span><br><span class="line">    array[<span class="number">0</span>] = array[--size];</span><br><span class="line">    downAdjust();</span><br><span class="line">    <span class="keyword">return</span> head;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * “上浮”调整</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">upAdjust</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> childIndex = size - <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">int</span> parentIndex = (childIndex - <span class="number">1</span>) / <span class="number">2</span>;</span><br><span class="line">    <span class="comment">// temp 保存插入的叶子节点值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> temp = array[childIndex];</span><br><span class="line">    <span class="keyword">while</span> (childIndex &gt; <span class="number">0</span> &amp;&amp; temp &gt; array[parentIndex]) &#123;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[childIndex] = array[parentIndex];</span><br><span class="line">      childIndex = parentIndex;</span><br><span class="line">      parentIndex = parentIndex / <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[childIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * “下沉”调整</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">downAdjust</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// temp 保存父节点的值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> parentIndex = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> temp = array[parentIndex];</span><br><span class="line">    <span class="keyword">int</span> childIndex = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">while</span> (childIndex &lt; size) &#123;</span><br><span class="line">      <span class="comment">// 如果有右孩子，且右孩子大于左孩子的值，则定位到右孩子</span></span><br><span class="line">      <span class="keyword">if</span> (childIndex + <span class="number">1</span> &lt; size &amp;&amp; array[childIndex + <span class="number">1</span>] &gt; array[childIndex]) &#123;</span><br><span class="line">        childIndex++;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 如果父节点大于任何一个孩子的值，直接跳出</span></span><br><span class="line">      <span class="keyword">if</span> (temp &gt;= array[childIndex]) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[parentIndex] = array[childIndex];</span><br><span class="line">      parentIndex = childIndex;</span><br><span class="line">      childIndex = <span class="number">2</span> * childIndex + <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[parentIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   * 队列扩容</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">resize</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//队列容量翻倍</span></span><br><span class="line">    <span class="keyword">int</span> newSize = <span class="keyword">this</span>.size * <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">this</span>.array = Arrays.copyOf(<span class="keyword">this</span>.array, newSize);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    PriorityQueue priorityQueue = <span class="keyword">new</span> PriorityQueue();</span><br><span class="line">    priorityQueue.enQueue(<span class="number">3</span>);</span><br><span class="line">    priorityQueue.enQueue(<span class="number">5</span>);</span><br><span class="line">    priorityQueue.enQueue(<span class="number">10</span>);</span><br><span class="line">    priorityQueue.enQueue(<span class="number">2</span>);</span><br><span class="line">    priorityQueue.enQueue(<span class="number">7</span>);</span><br><span class="line">    System.out.println(<span class="string">&quot; 出队元素：&quot;</span> + priorityQueue.deQueue());</span><br><span class="line">    System.out.println(<span class="string">&quot; 出队元素：&quot;</span> + priorityQueue.deQueue());</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/" class="post-title-link" itemprop="url">算法（五）之二叉堆</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-12-03 09:52:39" itemprop="dateCreated datePublished" datetime="2020-12-03T09:52:39+08:00">2020-12-03</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-12-04 09:58:54" itemprop="dateModified" datetime="2020-12-04T09:58:54+08:00">2020-12-04</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="什么是二叉堆"><a href="#什么是二叉堆" class="headerlink" title="什么是二叉堆"></a>什么是二叉堆</h2><p>二叉堆本质上是一种完全二叉树，它分为两个类型。 </p>
-<ol>
-<li><p>最大堆。 最大堆的任何一个父节点的值，都大于或等于它左、右孩子节点的值</p>
-</li>
-<li><p>最小堆。最小堆的任何一个父节点的值，都小于或等于它左、右孩子节点的值。</p>
-<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203200307460.png" alt="image-20201203200307460" style="zoom:80%;">
-
-</li>
-</ol>
-<p>二叉堆的根节点叫作<strong>堆顶</strong>。最大堆的堆顶是整个堆中的最大元素；最小堆的堆顶是整个堆中的最小元素。</p>
-<h2 id="基本操作"><a href="#基本操作" class="headerlink" title="基本操作"></a>基本操作</h2><ul>
-<li>插入节点：单一节点上浮，平均交换次数都是堆高度的一半，所以时间复杂度是O(log<del>2</del>n)</li>
-<li>删除节点：单一节点下沉，平均交换次数都是堆高度的一半，所以时间复杂度是O(log<del>2</del>n)</li>
-<li>构建二叉堆：要所有非叶子节点依次“下沉”，时间复杂度是O(n)</li>
-</ul>
-<p><strong>时间复杂度推导</strong></p>
-<p>n为节点数，level为层级</p>
-<ul>
-<li>插入和删除：f(n) = level-1; n = 2^level^-1；推导出：level = log<del>2</del>(n+1)，因此f(n)=log<del>2</del>(n+1)-1，所以时间复杂度为O(log<del>2</del>n)</li>
-<li>构建二叉堆：满二叉树堆则f(n) = 2^level-1^；n = 2^level^-1；推导出：level = log<del>2</del>(n+1)，因此f(n)=2^log(n+1)^-2=n-1,所以为O(n)</li>
-</ul>
-<h2 id="自我调整"><a href="#自我调整" class="headerlink" title="自我调整"></a>自我调整</h2><p>这几种操作都基于堆的自我调整。所谓堆的自我调整，就是把一个不符合堆性质的完全二叉树，调整成一个堆。</p>
-<ol>
-<li>插入节点 </li>
-</ol>
-<p>当二叉堆插入节点时，插入位置是完全二叉树的最后一个位置。例如插入一个新节点，值是 0。这时，新节点的父节点5比0大，显然不符合最小堆的性质。于是让新节点“上浮”，和父节点交换位置。继续用节点0和父节点3做比较，因为0小于3，则让新节点继续“上浮”。继续比较，最终新节点0“上浮”到了堆顶位置。<br><img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203105517492.png" alt="image-20201203105517492"></p>
-<ol start="2">
-<li>删除节点 </li>
-</ol>
-<p>二叉堆删除节点的过程和插入节点的过程正好相反，所删除的是处于堆顶的节点。例如删除最小堆的堆顶节点1。这时，为了继续维持完全二叉树的结构，我们把堆的最后一个节点10临时补到原本堆顶的位置。接下来，让暂处堆顶位置的节点10和它的左、右孩子进行比较，如果左、右孩子节点中最小的一个（显然是节点2）比节点10小，那么让节点10“下沉”。</p>
-<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203194844232.png" alt="image-20201203194844232">
-
-<ol start="3">
-<li>构建二叉堆</li>
-</ol>
-<p>构建二叉堆，也就是把一个无序的完全二叉树调整为二叉堆，**<font color="red">本质就是让所有 非叶子节点依次“下沉”</font>**。</p>
-<p>如下图的无序完全二叉树，找到第一个非叶子节点即10，与其子节点比较，节点6与节点10交互位置。数组方式存储，则下一个节点为节点3，与其子节点比较，节点3与节点2交互位置。下一个节点为1，与字节点比较，不用交换位置。最后一个节点为7，与其子节点比较，节点7下沉，与节点1交互位置，继续与子节点比较，子节点为6和5，最后于5节点交换位置。</p>
-<img src="/2020/12/03/%E7%AE%97%E6%B3%95%EF%BC%88%E4%BA%94%EF%BC%89%E4%B9%8B%E4%BA%8C%E5%8F%89%E5%A0%86/image-20201203200122412.png" alt="image-20201203200122412" style="zoom:80%;">
-
-<h3 id="实现代码"><a href="#实现代码" class="headerlink" title="实现代码"></a>实现代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">upAdjust</span><span class="params">(<span class="keyword">int</span>[] array)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> childrenIndex = array.length-<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">int</span> parentIndex = (childrenIndex-<span class="number">1</span>)/<span class="number">2</span>;</span><br><span class="line">    <span class="comment">// temp 保存插入的叶子节点值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> temp = array[childrenIndex];</span><br><span class="line">    <span class="keyword">while</span> (childrenIndex&gt;<span class="number">0</span> &amp;&amp; temp&lt;array[parentIndex])&#123;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[childrenIndex] = array[parentIndex];</span><br><span class="line">      childrenIndex = parentIndex;</span><br><span class="line">      parentIndex = (childrenIndex-<span class="number">1</span>)/<span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[childrenIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span></span><br><span class="line"><span class="comment">   *</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> array  待调整的堆</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> parentIndex  要“下沉”的父节点</span></span><br><span class="line"><span class="comment">   * <span class="doctag">@param</span> length 堆的有效大小</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">downAdjust</span><span class="params">(<span class="keyword">int</span>[] array,<span class="keyword">int</span> parentIndex,<span class="keyword">int</span> length)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> childrenIndex = <span class="number">2</span>*parentIndex+<span class="number">1</span>;</span><br><span class="line">    <span class="comment">// temp 保存父节点值，用于最后的赋值</span></span><br><span class="line">    <span class="keyword">int</span> temp = array[parentIndex];</span><br><span class="line">    <span class="keyword">while</span> (childrenIndex&lt;length)&#123;</span><br><span class="line">      <span class="comment">// 如果有右孩子，且右孩子小于左孩子的值，则定位到右孩子</span></span><br><span class="line">      <span class="keyword">if</span>(childrenIndex+<span class="number">1</span>&lt;length &amp;&amp; array[childrenIndex+<span class="number">1</span>]&lt;array[childrenIndex])&#123;</span><br><span class="line">        childrenIndex++;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 如果父节点小于任何一个孩子的值，则直接跳出</span></span><br><span class="line">      <span class="keyword">if</span>(temp&lt;array[childrenIndex])&#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//无须真正交换，单向赋值即可</span></span><br><span class="line">      array[parentIndex] = array[childrenIndex];</span><br><span class="line">      parentIndex = childrenIndex;</span><br><span class="line">      childrenIndex = <span class="number">2</span>*parentIndex+<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    array[parentIndex] = temp;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">buildHeapTree</span><span class="params">(<span class="keyword">int</span>[] array)</span></span>&#123;</span><br><span class="line">    <span class="comment">// 从最后一个非叶子节点开始，依次做“下沉”调整</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = (array.length-<span class="number">2</span>)/<span class="number">2</span>; i&gt;=<span class="number">0</span>; i--) &#123;</span><br><span class="line">      downAdjust(array, i, array.length);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span>[] array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">10</span>,<span class="number">0</span>&#125;;</span><br><span class="line">    upAdjust(array);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line"></span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">7</span>,<span class="number">1</span>,<span class="number">3</span>,<span class="number">10</span>,<span class="number">5</span>,<span class="number">2</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">6</span>,<span class="number">0</span>&#125;;</span><br><span class="line">    buildHeapTree(array);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line"></span><br><span class="line">    <span class="comment">//删除是用最后一个节点值替换要删除的节点，之后再下沉自我调整</span></span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">10</span>&#125;;</span><br><span class="line">    array = <span class="keyword">new</span> <span class="keyword">int</span>[] &#123;<span class="number">1</span>,<span class="number">10</span>,<span class="number">2</span>,<span class="number">6</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>&#125;;</span><br><span class="line">    downAdjust(array,<span class="number">1</span>,array.length);</span><br><span class="line">    System.out.println(Arrays.toString(array));</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="二叉堆的使用场景"><a href="#二叉堆的使用场景" class="headerlink" title="二叉堆的使用场景"></a>二叉堆的使用场景</h2><p>二叉堆是实现<strong>堆排序</strong>及<strong>优先队列</strong>的基础</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
-      <meta itemprop="description" content="学习还是需要记录">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="个人博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/" class="post-title-link" itemprop="url">算法（四）之树及二叉树和遍历</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-12-01 13:43:57" itemprop="dateCreated datePublished" datetime="2020-12-01T13:43:57+08:00">2020-12-01</time>
-    </span>
-      <span class="post-meta-item">
-        <span class="post-meta-item-icon">
-          <i class="far fa-calendar-check"></i>
-        </span>
-        <span class="post-meta-item-text">Edited on</span>
-        <time title="Modified: 2020-12-03 10:42:20" itemprop="dateModified" datetime="2020-12-03T10:42:20+08:00">2020-12-03</time>
-      </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="树概念"><a href="#树概念" class="headerlink" title="树概念"></a>树概念</h2><p>树（tree）是n（n≥0）个节点的有限集。当n=0时，称为空树。在任意一个非空树中，有如下特点。 </p>
-<ol>
-<li>有且仅有一个特定的称为根的节点。</li>
-<li>当n&gt;1时，其余节点可分为m（m&gt;0）个互不相交的有限集，每一个集合本身又是一个树，并称为根的子树。 <img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201134605336.png" alt="image-20201201134605336" style="zoom: 33%;">
-
-</li>
-</ol>
-<p>在上图中，节点1是根节点（root）；节点5、6、7、8是树的末端，没有“孩子”，被称为叶子节点（leaf）。图中的虚线部分，是根节点1的其中一个子树。<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201134818417.png" alt="image-20201201134818417" style="zoom: 33%;"></p>
-<p>树的结构从根节点到叶子节点，分为不同的层级。从一个节点的角度来看，它的上下级和同级节点关系如下。</p>
-<p>在上图中，节点4的上一级节点，是节点4的<strong>父节点（parent）</strong>；从节点4衍生出来的节点，是节点4的<strong>孩子节点（child）</strong>；和节点4同级，由同一个父节点衍生出来的节点，是节点4的<strong>兄弟节点（sibling）</strong></p>
-<p>树的最大层级数，被称为树的高度或深度。显然，上图这个树的高度是4。</p>
-<h2 id="什么是二叉树"><a href="#什么是二叉树" class="headerlink" title="什么是二叉树"></a>什么是二叉树</h2><p>二叉树（binary tree）是树的一种特殊形式。二叉，顾名思义，这种树的每个节点最多有2个孩子节点。注意，这里是最多有2个，也可能只有1个，或者没有孩子节点<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135228229.png" alt="image-20201201135228229" style="zoom: 33%;"><br>二叉树节点的两个孩子节点，一个被称为<strong>左孩子（left child）</strong>，一个被称为<strong>右孩子（right child）</strong>。这两个孩子节点的顺序是固定的，就像人的左手就是左手，右手就是右手，不能够颠倒或混淆。</p>
-<p>二叉树还有两种特殊形式，一个叫作<strong>满二叉树</strong>，另一个叫作<strong>完全二叉树</strong></p>
-<h3 id="什么是满二叉树"><a href="#什么是满二叉树" class="headerlink" title="什么是满二叉树"></a>什么是满二叉树</h3><p>一个二叉树的所有非叶子节点都存在左右孩子，并且所有叶子节点都在同一层级上，那么这个树就是满二叉树。简单点说，满二叉树的每一个分支都是满的。一棵深度为k且有2^K^-1个节点的二叉树称为满二叉树。满二叉树每一层的结点个数都达到了最大值, 即满二叉树的第i层上有2^i-1^个节点（i&gt;=1）<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135513962.png" alt="image-20201201135513962" style="zoom:33%;"></p>
-<h3 id="什么是完全二叉树"><a href="#什么是完全二叉树" class="headerlink" title="什么是完全二叉树"></a>什么是完全二叉树</h3><p>对一个有n个节点的二叉树，按层级顺序编号，则所有节点的编号为从1到n。如果这个树所有节点和同样深度的满二叉树的编号为从1到n的节点位置相同，则这个二叉树为完全二叉树。<br><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201135646991.png" alt="image-20201201135646991" style="zoom:33%;"><br>在上图中，二叉树编号从1到12的12个节点，和前面满二叉树编号从1到12的节点位置完全对应。因此这个树是完全二叉树。<br>完全二叉树的条件没有满二叉树那么苛刻：满二叉树要求所有分支都是满的；而完全二叉树只需保证最后一个节点之前的节点都齐全即可。满二叉树是完全二叉树的特殊形态, 即如果一棵二叉树是满二叉树, 则它必定是完全二叉树</p>
-<h3 id="二叉树存储结构"><a href="#二叉树存储结构" class="headerlink" title="二叉树存储结构"></a>二叉树存储结构</h3><p>链式存储结构。<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201140333971.png" alt="image-20201201140333971" style="zoom:25%;"></p>
-<ul>
-<li>存储数据的data变量 </li>
-<li>指向左孩子的left指针 </li>
-<li>指向右孩子的right指针</li>
-</ul>
-<p>数组。<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201140524048.png" alt="image-20201201140524048" style="zoom:25%;"><br>使用数组存储时，会按照层级顺序把二叉树的节点放到数组中对应的位置上。如果某一个节点的左孩子或右孩子空缺，则数组的相应位置也空出来。</p>
-<p><strong>为什么这样设计</strong><br>因为这样可以更方便地在数组中定位二叉树的孩子节点和 父节点。</p>
-<p>假设一个父节点的下标是parent，那么它的左孩子节点下标就是2×parent +1；右孩子节点下标就是2×parent + 2。<br>反过来，假设一个左孩子节点的下标是leftChild，那么它的父节点下标就是（leftChild-1）/ 2。<br>假如节点4在数组中的下标是3，节点4是节点2的左孩子，节点2的下标可以直接<br>通过计算得出。节点2的下标 = (3-1)/2 = 1 </p>
-<p>显然，对于一个稀疏的二叉树来说，用数组表示法是非常浪费空间的。</p>
-<p><strong>什么样的二叉树最适合用数组表示呢？</strong></p>
-<p>一种特殊的完全二叉树，就是用数组来存储的。</p>
-<h3 id="二叉树应用"><a href="#二叉树应用" class="headerlink" title="二叉树应用"></a>二叉树应用</h3><p>二叉树包含许多特殊的形式，每一种形式都有自己的作用，但是其最主要的应用还在于进行<strong>查找操作和维持相对顺序</strong>这两个方面。 </p>
-<h4 id="查找"><a href="#查找" class="headerlink" title="查找"></a><strong>查找</strong></h4><p>二叉树的树形结构使它很适合扮演索引的角色。 <strong>二叉查找树（binary search tree）</strong>主要作用就是进行查找操作</p>
-<p><strong>二叉查找树</strong><br>二叉查找树在二叉树的基础上增加了以下几个条件。 <font color="red"><strong>为了查找方便</strong></font>。</p>
-<ul>
-<li>如果左子树不为空，则左子树上所有节点的值均小于根节点的值 </li>
-<li>如果右子树不为空，则右子树上所有节点的值均大于根节点的值 </li>
-<li>左、右子树也都是二叉查找树<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201141125488.png" alt="image-20201201141125488" style="zoom:25%;">
-对于一个节点分布相对均衡的二叉查找树来说，如果节点总数是n，那么搜索节点的时间复杂度就是O(logn)，和树的深度是一样的。这种依靠比较大小来逐步查找的方式，和二分查找算法非常相似。 
-#### **维持相对顺序**
-二叉查找树要求左子树小于父节点，右子树大于父节点，正是这样保证了二叉树的有序性。因此二叉查找树还有另一个名字——二叉排序树（binary sort tree）。 
-
-</li>
-</ul>
-<h4 id="二叉查找树（二叉排序树）的问题"><a href="#二叉查找树（二叉排序树）的问题" class="headerlink" title="二叉查找树（二叉排序树）的问题"></a>二叉查找树（二叉排序树）的问题</h4><img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201141637961.png" alt="image-20201201141637961" style="zoom:25%;">
-在根节点为10的节点情况下，插入9、8、7节点时，会出现如图的情况。查询节点的时间复杂度退化成O(n)。
-
-<h4 id="二叉树自平衡"><a href="#二叉树自平衡" class="headerlink" title="二叉树自平衡"></a>二叉树自平衡</h4><p>二叉树自平衡的方式有多种，如红黑树、AVL树、树堆等</p>
-<h3 id="二叉树的遍历"><a href="#二叉树的遍历" class="headerlink" title="二叉树的遍历"></a>二叉树的遍历</h3><p>从节点之间位置关系的角度来看，二叉树的遍历分为4种</p>
-<ul>
-<li><p><strong>前序遍历</strong>：输出顺序是根节点、左子树、右子树。</p>
-<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200256982.png" alt="image-20201201200256982" style="zoom:25%;">
-</li>
-<li><p><strong>中序遍历</strong>：输出顺序是左子树、根节点、右子树</p>
-<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200341762.png" alt="image-20201201200341762" style="zoom:25%;">
-</li>
-<li><p><strong>后序遍历</strong>：输出顺序是左子树、右子树、根节点</p>
-<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201201200417902.png" alt="image-20201201200417902" style="zoom:25%;">
-</li>
-<li><p>层序遍历。层级输出</p>
-<img src="/2020/12/01/%E7%AE%97%E6%B3%95%EF%BC%88%E5%9B%9B%EF%BC%89%E4%B9%8B%E6%A0%91%E5%8F%8A%E4%BA%8C%E5%8F%89%E6%A0%91%E5%92%8C%E9%81%8D%E5%8E%86/image-20201202112654756.png" alt="image-20201202112654756" style="zoom:25%;">
-
-</li>
-</ul>
-<p>从更宏观的角度来看，二叉树的遍历归结为两大类。</p>
-<ul>
-<li><p>深度优先遍历（前序遍历、中序遍历、后序遍历）。 所谓深度优先，顾名思义，就是偏向于纵深，“一头扎到底”的访问方式。</p>
-</li>
-<li><p>广度优先遍历（层序遍历）。就是二叉树按照从根节点到叶子节点的层次关系，一层一层横向遍历各个节点 。</p>
-<p>深度优先和广度优先这两个概念不止局限于二叉树，它们更是一种抽象的算法思想，决定了访问某些复杂数据结构的顺序。在访问树、图，或其他一些复杂数据结构时，这两个概念常常被使用到。 </p>
-</li>
-</ul>
-<h4 id="深度优先遍历"><a href="#深度优先遍历" class="headerlink" title="深度优先遍历"></a>深度优先遍历</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> TreeNode <span class="title">createTree</span><span class="params">(LinkedList list)</span> </span>&#123;</span><br><span class="line">    TreeNode treeNode = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (Objects.isNull(list) || list.isEmpty()) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    Object o = list.removeFirst();</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(o)) &#123;</span><br><span class="line">      treeNode = <span class="keyword">new</span> TreeNode();</span><br><span class="line">      treeNode.date = o;</span><br><span class="line">      treeNode.leftNode = createTree(list);</span><br><span class="line">      treeNode.rightNode = createTree(list);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> treeNode;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">preOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">preOrderForeachWithStack</span><span class="params">(TreeNode root)</span> </span>&#123;</span><br><span class="line">    Stack&lt;TreeNode&gt; stack = <span class="keyword">new</span> Stack&lt;TreeNode&gt;();</span><br><span class="line">    TreeNode treeNode = root;</span><br><span class="line">    stack.push(root);</span><br><span class="line">    <span class="keyword">while</span> (treeNode != <span class="keyword">null</span> || !stack.isEmpty()) &#123;</span><br><span class="line">      <span class="keyword">while</span> (treeNode != <span class="keyword">null</span>) &#123;</span><br><span class="line">        System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">        stack.push(treeNode.leftNode);</span><br><span class="line">        treeNode = treeNode.leftNode;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!stack.isEmpty()) &#123;</span><br><span class="line">        TreeNode pop = stack.pop();</span><br><span class="line">        <span class="keyword">if</span> (pop != <span class="keyword">null</span>) &#123;</span><br><span class="line">          treeNode = pop.rightNode;</span><br><span class="line">          stack.push(treeNode);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">inOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">postOrderForeach</span><span class="params">(TreeNode treeNode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Objects.nonNull(treeNode)) &#123;</span><br><span class="line">      preOrderForeach(treeNode.leftNode);</span><br><span class="line">      preOrderForeach(treeNode.rightNode);</span><br><span class="line">      System.out.print(treeNode.date + <span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TreeNode</span> </span>&#123;</span><br><span class="line">    Object date;</span><br><span class="line">    TreeNode leftNode;</span><br><span class="line">    TreeNode rightNode;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    LinkedList list = <span class="keyword">new</span> LinkedList(Arrays</span><br><span class="line">        .asList(<span class="keyword">new</span> Integer[]&#123;<span class="number">3</span>, <span class="number">2</span>, <span class="number">9</span>, <span class="number">6</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">7</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">10</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="number">8</span>, <span class="keyword">null</span>, <span class="number">4</span>&#125;));</span><br><span class="line">    TreeNode treeNode = createTree(list);</span><br><span class="line">    preOrderForeach(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    preOrderForeachWithStack(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    inOrderForeach(treeNode);</span><br><span class="line">    System.out.println(<span class="string">&quot;--------------------------&quot;</span>);</span><br><span class="line">    postOrderForeach(treeNode);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="广度优先遍历"><a href="#广度优先遍历" class="headerlink" title="广度优先遍历"></a>广度优先遍历</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">levelOrderForeach</span><span class="params">(TreeNode root)</span> </span>&#123;</span><br><span class="line">  Queue&lt;TreeNode&gt; queue = <span class="keyword">new</span> LinkedList&lt;TreeNode&gt;();</span><br><span class="line">  queue.offer(root);</span><br><span class="line">  <span class="keyword">while</span> (!queue.isEmpty())&#123;</span><br><span class="line">    TreeNode treeNode = queue.poll();</span><br><span class="line">    <span class="keyword">if</span>(treeNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">      System.out.print(treeNode.date+<span class="string">&quot;-&gt;&quot;</span>);</span><br><span class="line">      <span class="keyword">if</span>(treeNode.leftNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">        queue.offer(treeNode.leftNode);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(treeNode.rightNode!=<span class="keyword">null</span>)&#123;</span><br><span class="line">        queue.offer(treeNode.rightNode);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
       
