@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","version":"8.0.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+  </script>
+
+  <meta name="description" content="Java基础Java序列化为什么要实现Serializable接口 为什么要进实现Serializable接口：为了保存在内存中的各种对象的状态（也就是实例变量，不是方法），并且可以把保存的对象状态再读出来，这是java中的提供的保存对象状态的机制—序列化。 在什么情况下需要使用到Serializable接口呢？　　1、当想把的内存中的对象状态保存到一个文件中或者数据库中时候；　　2、当想用套接字">
+<meta property="og:type" content="article">
+<meta property="og:title" content="总结-面试系列文章">
+<meta property="og:url" content="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="Java基础Java序列化为什么要实现Serializable接口 为什么要进实现Serializable接口：为了保存在内存中的各种对象的状态（也就是实例变量，不是方法），并且可以把保存的对象状态再读出来，这是java中的提供的保存对象状态的机制—序列化。 在什么情况下需要使用到Serializable接口呢？　　1、当想把的内存中的对象状态保存到一个文件中或者数据库中时候；　　2、当想用套接字">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/794174-20200508142929527-1342544356.png">
+<meta property="og:image" content="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/794174-20200508142947572-369187416.png">
+<meta property="article:published_time" content="2021-03-12T06:06:29.000Z">
+<meta property="article:modified_time" content="2021-03-12T10:23:56.578Z">
+<meta property="article:author" content="灰(｢･ω･)｢嘿灰">
+<meta property="article:tag" content="面试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/794174-20200508142929527-1342544356.png">
+
+
+<link rel="canonical" href="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>总结-面试系列文章 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">个人博客</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>Schedule</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <section class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Java%E5%9F%BA%E7%A1%80"><span class="nav-number">1.</span> <span class="nav-text">Java基础</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">并发编程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81"><span class="nav-number">3.</span> <span class="nav-text">锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9B%86%E5%90%88"><span class="nav-number">4.</span> <span class="nav-text">集合</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E6%B1%A0"><span class="nav-number">5.</span> <span class="nav-text">线程池</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM"><span class="nav-number">6.</span> <span class="nav-text">JVM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis"><span class="nav-number">7.</span> <span class="nav-text">Redis</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F"><span class="nav-number">8.</span> <span class="nav-text">分布式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1"><span class="nav-number">9.</span> <span class="nav-text">分布式事务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97"><span class="nav-number">10.</span> <span class="nav-text">消息队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B6%E5%AE%83%E8%B5%84%E6%96%99"><span class="nav-number">11.</span> <span class="nav-text">其它资料</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E6%8A%80%E5%B7%A7"><span class="nav-number">12.</span> <span class="nav-text">开发技巧</span></a></li></ol></div>
+        </section>
+        <!--/noindex-->
+
+        <section class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">灰(｢･ω･)｢嘿灰</p>
+  <div class="site-description" itemprop="description">学习还是需要记录</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">106</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">25</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">65</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </section>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+      
+
+      
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="灰(｢･ω･)｢嘿灰">
+      <meta itemprop="description" content="学习还是需要记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          总结-面试系列文章
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-03-12 14:06:29 / Modified: 18:23:56" itemprop="dateCreated datePublished" datetime="2021-03-12T14:06:29+08:00">2021-03-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E9%9D%A2%E8%AF%95/" itemprop="url" rel="index"><span itemprop="name">面试</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="Java基础"><a href="#Java基础" class="headerlink" title="Java基础"></a>Java基础</h2><p><a target="_blank" rel="noopener" href="http://www.hellojava.com/a/86057.html">Java序列化为什么要实现Serializable接口</a></p>
+<p><strong>为什么要进实现Serializable接口：</strong>为了保存在内存中的各种对象的状态（也就是实例变量，不是方法），并且可以把保存的对象状态再读出来，这是java中的提供的保存对象状态的机制—序列化。</p>
+<p><strong>在什么情况下需要使用到Serializable接口呢？</strong><br>　　1、当想把的内存中的对象状态保存到一个文件中或者数据库中时候；<br>　　2、当想用套接字在网络上传送对象的时候；<br>　　3、当想通过RMI传输对象的时候；<br>　　<br><strong>serialVersionUID</strong><br>serialVersionUID的取值是Java运行时环境根据类的内部细节自动生成的。<strong>如果对类的源代码作了修改，再重新编译，新生成的类文件的serialVersionUID的取值有可能也会发生变化。</strong>类的serialVersionUID的默认值完全依赖于Java编译器的实现，对于同一个类，用不同的Java编译器编译，有可能会导致不同的serialVersionUID，也有可能相同。为了提高serialVersionUID的独立性和确定性，强烈建议在一个可序列化类中显示的定义serialVersionUID，为它赋予明确的值。显式地定义serialVersionUID有两种用途：<br>　　a. 在某些场合，希望类的不同版本对序列化兼容，因此需要确保类的不同版本具有相同的serialVersionUID；<br>　　b. 在某些场合，不希望类的不同版本对序列化兼容，因此需要确保类的不同版本具有不同的serialVersionUID。</p>
+<h2 id="并发编程"><a href="#并发编程" class="headerlink" title="并发编程"></a>并发编程</h2><p><a target="_blank" rel="noopener" href="https://baijiahao.baidu.com/s?id=1684596804166445688&wfr=spider&for=pc">volatile是如何实现可见性和有序性的</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_36759405/article/details/82856542">volatile内存屏障</a></p>
+<p>“观察加入volatile关键字和没有加入volatile关键字时所生成的汇编代码发现，加入volatile关键字时，会多出一个lock前缀指令”</p>
+<p>　　lock前缀指令实际上相当于一个内存屏障（也成内存栅栏），内存屏障会提供3个功能：</p>
+<p>　　1）它确保指令重排序时不会把其后面的指令排到内存屏障之前的位置，也不会把前面的指令排到内存屏障的后面；即在执行到内存屏障这句指令时，在它前面的操作已经全部完成；</p>
+<p>　　2）它会强制将对缓存的修改操作立即写入主存；</p>
+<p>　　3）如果是写操作，它会导致其他CPU中对应的缓存行无效。</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/6189034c6984">懒汉双检查单例模式</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/emmmsuperdan/article/details/81564412">可见性、有序性、原子性</a></p>
+<h2 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h2><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6934866839247781919">Synchronized</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6904880910408433678">为什么推荐ReentrantLock而不是Synchronized</a></p>
+<p>synchronized的锁强度依次为：无锁状态、偏向锁状态、轻量级锁、重量级锁，会随着多线程的竞争强度逐渐升级。这个是众所周知的,最近在看《并发编程的艺术》中提到了锁只能升级而无法降级，但是我记得在之前的某些资料中看到过:<strong>锁是可以降级的，只不过条件比较苛刻</strong>。不知道对于此有什么具体的权威的资料可以参考呢？</p>
+<p>并没有 JDK 标准，完全看各家 JVM 是咋实现的了。</p>
+<p>像 HotSpot JVM 其实就支持锁降级，但是锁升降级效率较低，如果频繁升降级的话对性能就会造成很大影响。重量级锁降级发生于 STW 阶段，降级对象为仅仅能被 VMThread 访问而没有其他 JavaThread 访问的对象。</p>
+<p>被锁的对象都被垃圾回收了有没有锁还有啥关系？因此基本认为锁不可降级。</p>
+<h2 id="集合"><a href="#集合" class="headerlink" title="集合"></a>集合</h2><h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=Mzg2OTA0Njk0OA==&mid=2247485679&idx=1&sn=57dbca8c9ad49e1f3968ecff04a4f735&chksm=cea24724f9d5ce3212292fac291234a760c99c0960b5430d714269efe33554730b5f71208582&token=1141994790&lang=zh_CN#rd">线程池除了常见的4种拒绝策略，你还知道哪些</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6936098056299347975">源码分析</a></p>
+<h2 id="JVM"><a href="#JVM" class="headerlink" title="JVM"></a>JVM</h2><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6936524515883089950">Class文件结构</a></p>
+<p><a target="_blank" rel="noopener" href="https://tech.meituan.com/2019/09/05/java-bytecode-enhancement.html">字节码结构</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6938276102553108511">类加载机制</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6934124106795188238">类加载机制</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6938233964725272606">Java中的常量池</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6937494243552264200">JVM生命周期</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6931372159356895246">JVM结构</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6936390496122044423">JVM问题</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6938255230563778597">java虚拟机类型</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6938599768071340040">JVM垃圾回收</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6894500808583610382">JVM垃圾回收</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6905300467027771405">回收算法</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6926056104590278664">垃圾回收器CMS详解</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6926056104590278664">垃圾回收器G1</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6936013918212980743">JVM基本参数</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6911624328472133646">MAT深度</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6929038616417009671">JVM总结</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6911668514096955406">JVM总结</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6894398706225774606">JVM 性能调优监控工具</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6920102335582568456">JVM 性能调优监控工具</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6894500808583610382">CMS GC问题分析与解决</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6894501519001911310">CMS GC问题分析与解决</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6934218573963329549">JVM性能优化实战</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6920468146906202119">JVM性能调优实战</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6921527104009928717">JVM性能调优实战</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6921278948030709768">JVM性能调优实战</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6905172888601493517">性能</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6915648411643412488">JVM如何调优</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6913788257843019783">代码优化细节</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6927291610732429325">性能调优</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6918668597715795975">记一次线上服务器oom 排查过程</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6937652257185857566">对象的实例化与对象的访问</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6929273950438424589">hashCode()底层 JDK C++ 源码实现</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6935407834863501349">伪共享</a></p>
+<h2 id="Redis"><a href="#Redis" class="headerlink" title="Redis"></a>Redis</h2><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kongtiao5/article/details/82771694">缓存三种问题及解决方案</a></p>
+<p>ES</p>
+<p><a target="_blank" rel="noopener" href="https://developer.51cto.com/art/201904/594615.htm">倒排索引</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/huangfox/p/9460361.html">为什么要移除Type</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2017/08/elasticsearch.html">简单部署和使用</a></p>
+<p><a target="_blank" rel="noopener" href="https://baijiahao.baidu.com/s?id=1663609942544356335&wfr=spider&for=pc">集群角色分离</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/truelove12358/article/details/105577414">倒排索引与B+Tree对比</a></p>
+<p> <a target="_blank" rel="noopener" href="https://www.cnblogs.com/LBSer/p/4119841.html">FST（finite state transducers）</a></p>
+<p><a target="_blank" rel="noopener" href="https://elasticsearch.cn/article/6178#tip3">Elasticsearch中数据是如何存储的（Lucene）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/wx1528159409/article/details/105973336">ES的数据写入原理，refresh和flush</a></p>
+<p><a target="_blank" rel="noopener" href="https://liubowen.blog.csdn.net/article/details/81950081?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.control&dist_request_id=&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.control">Elasticsearch原理（三）：写入流程</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaoyu_BD/article/details/81735473">Elasticsearch原理（一）：实时架构</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/cn/elasticsearch/guide/current/translog.html">持久化变更</a></p>
+<p>Master Node：主节点<br>Master eligible nodes：合格节点<br>Data Node：数据节点<br>Coordinating Node：协调节点<br>Ingest Node：ingest节点<br>machine learning：机器学习节点</p>
+<p><img src="/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/794174-20200508142929527-1342544356.png" alt="img"></p>
+<p><img src="/2021/03/12/%E6%80%BB%E7%BB%93-%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0/794174-20200508142947572-369187416.png" alt="img"></p>
+<ul>
+<li>Master Node：主节点，该节点不和应用创建连接，每个节点都保存了集群状态，master节点不占用磁盘IO和CPU，内存使用量一般。</li>
+<li>Master eligible nodes：合格节点，每个节点部署后不修改配置信息，默认就是一个 eligible 节点，该节点可以参加选主流程，成为Mastere节点。该节点也保存了集群节点的状态。eligible节点比Master节点更节省资源，因为它还未成为 Master 节点，只是有资格成功Master节点。</li>
+<li>Data Node：数据节点，该节点和索引应用创建连接、接收索引请求，该节点真正存储数据，ES集群的性能取决于该节点的个数（每个节点最优配置的情况下），data节点会占用大量的CPU、IO和内存。</li>
+<li>Coordinating Node：协调节点，该节点和检索应用创建连接、接受检索请求，但其本身不负责存储数据，可当负责均衡节点，该节点不占用io、cpu和内存。</li>
+<li>Ingest Node：ingest 节点可以看作是数据前置处理转换的节点，支持 pipeline管道 设置，可以使用 ingest 对数据进行过滤、转换等操作，类似于 logstash 中 filter 的作用，功能相当强大。</li>
+</ul>
+<h2 id="分布式"><a href="#分布式" class="headerlink" title="分布式"></a>分布式</h2><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6929795131042168846">数据一致性</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6931884966813007879?utm_source=gold_browser_extension">CAP理论</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6931144402597330951">BASE 理论</a><br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6938444096990248997">Paxos 共识算法</a></p>
+<h2 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h2><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6874788280378851335">分布式事务概念详解</a></p>
+<h2 id="消息队列"><a href="#消息队列" class="headerlink" title="消息队列"></a>消息队列</h2><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6867040340797292558">RocketMQ 和 Kafka事务消息</a></p>
+<p>Zookeeper<br><a target="_blank" rel="noopener" href="https://juejin.cn/post/6934623205823315976">zookeeper选举同步</a></p>
+<h2 id="其它资料"><a href="#其它资料" class="headerlink" title="其它资料"></a>其它资料</h2><p><a target="_blank" rel="noopener" href="https://github.com/xjjdog/bcmall">各种</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/macrozheng/mall-learning?utm_source=gold_browser_extension">商城项目实战</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/CyC2018/CS-Notes?utm_source=gold_browser_extension">题目</a></p>
+<h2 id="开发技巧"><a href="#开发技巧" class="headerlink" title="开发技巧"></a>开发技巧</h2><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/DXDE443/p/10308059.html">从ftp取文件并http调用某接口上传此文件</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/liuyi13535496566/p/12634898.html">EasyExcel</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6937092573429235720">实用工具</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E9%9D%A2%E8%AF%95/" rel="tag"># 面试</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/03/11/%E5%94%AF%E4%B8%80id%E7%94%9F%E6%88%90%E6%96%B9%E5%BC%8F/" rel="prev" title="唯一id生成方式">
+                  <i class="fa fa-chevron-left"></i> 唯一id生成方式
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+      
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      
+
+      
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">灰(｢･ω･)｢嘿灰</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
